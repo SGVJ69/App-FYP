@@ -566,14 +566,6 @@ export default function App() {
       case Screen.PROGRESS:
         return (
           <div className="space-y-8 page-fade-in">
-             <div className="text-center bg-black text-white p-10 rounded-[3.5rem] border-4 border-amber-400 shadow-xl relative overflow-hidden traditional-card">
-                <div className="absolute -top-10 -right-10 opacity-10 rotate-12">
-                   <i className="fas fa-trophy text-[10rem]"></i>
-                </div>
-                <p className="text-amber-400 font-black tracking-widest text-sm uppercase mb-2">Total Score</p>
-                <h2 className="text-7xl font-black kadazan-title italic">{userProgress.totalScore}%</h2>
-             </div>
-
              <div className="grid grid-cols-1 gap-6">
                 <div className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-200 flex flex-col gap-4 shadow-sm">
                    <div className="flex items-center justify-between">
@@ -583,7 +575,7 @@ export default function App() {
                          </div>
                          <div>
                            <h4 className="font-black text-lg text-slate-900 leading-none">Spelling Exercises</h4>
-                           <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Words written correctly</p>
+                           <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Level {Math.min(userProgress.spellingCompleted, 100) < 34 ? 1 : Math.min(userProgress.spellingCompleted, 100) < 67 ? 2 : 3} • Words written correctly</p>
                          </div>
                       </div>
                       <span className="text-2xl font-black text-black">{Math.min(userProgress.spellingCompleted, 100)}%</span>
@@ -604,7 +596,7 @@ export default function App() {
                          </div>
                          <div>
                            <h4 className="font-black text-lg text-slate-900 leading-none">Sentences Built</h4>
-                           <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Grammar mastered</p>
+                           <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Level {Math.min(userProgress.sentencesCompleted, 100) < 34 ? 1 : Math.min(userProgress.sentencesCompleted, 100) < 67 ? 2 : 3} • Grammar mastered</p>
                          </div>
                       </div>
                       <span className="text-2xl font-black text-black">{Math.min(userProgress.sentencesCompleted, 100)}%</span>
