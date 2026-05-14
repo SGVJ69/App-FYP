@@ -13,7 +13,7 @@ const STATIC_VOCABULARY: Record<string, WordPair[]> = {
   'Animals': [
     { english: 'Dog', kadazan: 'Tasu', malay: 'Anjing', example: 'Agayo ilo tasu.', exampleEnglish: 'That dog is big.', exampleMalay: 'Anjing itu besar.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600' },
     { english: 'Cat', kadazan: 'Tingau', malay: 'Kucing', example: 'Tingau ku diti.', exampleEnglish: 'This is my cat.', exampleMalay: 'Ini kucing saya.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Bird', kadazan: 'Tombolog', malay: 'Burung', example: 'Tumulud ih tombolog.', exampleEnglish: 'The bird flies.', exampleMalay: 'Burung itu terbang.', category: 'Animals', imageUrl: '/images/cute-yellow-bird.svg' },
+    { english: 'Horse', kadazan: 'Kuda', malay: 'Kuda', example: 'Agayo ilo kuda.', exampleEnglish: 'That horse is big.', exampleMalay: 'Kuda itu besar.', category: 'Animals', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Horse_December_2014-1.jpg' },
     { english: 'Fish', kadazan: 'Sada', malay: 'Ikan', example: 'Aso sada id taang.', exampleEnglish: 'There is no fish in the market.', exampleMalay: 'Tiada ikan di pasar.', category: 'Animals', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Oreochromis-niloticus-Nairobi.JPG/960px-Oreochromis-niloticus-Nairobi.JPG' },
     { english: 'Chicken', kadazan: 'Manuk', malay: 'Ayam', example: 'Panggulon ku ih manuk.', exampleEnglish: 'I will hit the chicken.', exampleMalay: 'Saya akan pukul ayam itu.', category: 'Animals', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg' }
   ],
@@ -57,9 +57,9 @@ const STATIC_VOCABULARY: Record<string, WordPair[]> = {
 
 const STATIC_QUIZZES: Record<string, QuizQuestion[]> = {
   'Animals': [
-    { question: 'What is "Dog" in Kadazan?', options: ['Tingau', 'Tasu', 'Manuk', 'Tombolog'], correctAnswer: 'Tasu', explanation: 'Tasu means Dog (Anjing).' },
-    { question: 'What is "Cat" in Kadazan?', options: ['Tingau', 'Tasu', 'Sada', 'Tombolog'], correctAnswer: 'Tingau', explanation: 'Tingau means Cat (Kucing).' },
-    { question: 'What is "Bird" in Kadazan?', options: ['Sada', 'Tingau', 'Tombolog', 'Manuk'], correctAnswer: 'Tombolog', explanation: 'Tombolog means Bird (Burung).' },
+    { question: 'What is "Dog" in Kadazan?', options: ['Tingau', 'Tasu', 'Manuk', 'Kuda'], correctAnswer: 'Tasu', explanation: 'Tasu means Dog (Anjing).' },
+    { question: 'What is "Cat" in Kadazan?', options: ['Tingau', 'Tasu', 'Sada', 'Kuda'], correctAnswer: 'Tingau', explanation: 'Tingau means Cat (Kucing).' },
+    { question: 'What is "Horse" in Kadazan?', options: ['Sada', 'Tingau', 'Kuda', 'Manuk'], correctAnswer: 'Kuda', explanation: 'Kuda means Horse (Kuda).' },
     { question: 'What is "Fish" in Kadazan?', options: ['Manuk', 'Tasu', 'Tingau', 'Sada'], correctAnswer: 'Sada', explanation: 'Sada means Fish (Ikan).' }
   ],
   'Food': [
