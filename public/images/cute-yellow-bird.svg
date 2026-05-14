@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!-- Body -->
+  <circle cx="100" cy="110" r="60" fill="#fde047" />
+  
+  <!-- Belly -->
+  <circle cx="100" cy="125" r="45" fill="#fef08a" />
+  
+  <!-- Eyes -->
+  <ellipse cx="80" cy="95" rx="8" ry="12" fill="#333" />
+  <ellipse cx="120" cy="95" rx="8" ry="12" fill="#333" />
+  
+  <!-- Eye highlights -->
+  <circle cx="78" cy="91" r="3" fill="white" />
+  <circle cx="118" cy="91" r="3" fill="white" />
+  <circle cx="82" cy="97" r="1.5" fill="white" />
+  <circle cx="122" cy="97" r="1.5" fill="white" />
+  
+  <!-- Beak -->
+  <path d="M92 105 Q100 115 108 105 Q100 100 92 105 Z" fill="#f97316" />
+  
+  <!-- Cheeks -->
+  <ellipse cx="60" cy="105" rx="8" ry="5" fill="#fca5a5" opacity="0.8" />
+  <ellipse cx="140" cy="105" rx="8" ry="5" fill="#fca5a5" opacity="0.8" />
+  
+  <!-- Wings -->
+  <path d="M42 110 C30 130 30 150 50 140 C55 137 60 120 42 110 Z" fill="#facc15" />
+  <path d="M158 110 C170 130 170 150 150 140 C145 137 140 120 158 110 Z" fill="#facc15" />
+  
+  <!-- Head Tuft -->
+  <path d="M95 50 C95 40 100 35 100 35 C100 35 105 40 105 50 Z" fill="#fde047" />
+  <path d="M102 52 C105 42 112 40 112 40 C112 40 112 47 107 55 Z" fill="#fde047" />
+  <path d="M98 52 C95 42 88 40 88 40 C88 40 88 47 93 55 Z" fill="#fde047" />
+  
+  <!-- Feet -->
+  <path d="M85 168 L80 185 L85 185 L90 185 L85 168 Z" fill="#f97316" stroke="#ea580c" stroke-width="2" stroke-linejoin="round" />
+  <path d="M115 168 L110 185 L115 185 L120 185 L115 168 Z" fill="#f97316" stroke="#ea580c" stroke-width="2" stroke-linejoin="round" />
+</svg>
