@@ -10,7 +10,9 @@ export enum Screen {
   FEEDBACK = 'FEEDBACK',
   LOADING = 'LOADING',
   ABOUT = 'ABOUT',
-  PROGRESS = 'PROGRESS'
+  PROGRESS = 'PROGRESS',
+  MEMORY_GAME = 'MEMORY_GAME',
+  MEMORY_THEMES = 'MEMORY_THEMES'
 }
 
 export interface UserProgress {
@@ -18,6 +20,10 @@ export interface UserProgress {
   quizzesCompleted: number;
   spellingCompleted: number;
   sentencesCompleted: number;
+  memoryCompleted: number;
+  streak: number;
+  lastActiveDate: string | null;
+  badges: string[];
 }
 
 export interface WordPair {

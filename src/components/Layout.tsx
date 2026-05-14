@@ -90,7 +90,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavig
             <span className="hidden sm:inline">Sabah Heritage</span>
             <div className="w-2 h-2 bg-red-600 rotate-45"></div>
           </div>
-          {user && (
+          {user && currentScreen === Screen.HOME && (
             <button
               onClick={handleLogout}
               className="text-xs font-bold text-red-600 hover:text-red-800 transition-colors bg-red-50 px-3 py-1.5 rounded-full border border-red-100"

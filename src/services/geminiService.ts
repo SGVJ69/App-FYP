@@ -13,7 +13,7 @@ const STATIC_VOCABULARY: Record<string, WordPair[]> = {
   'Animals': [
     { english: 'Dog', kadazan: 'Tasu', malay: 'Anjing', example: 'Agayo ilo tasu.', exampleEnglish: 'That dog is big.', exampleMalay: 'Anjing itu besar.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600' },
     { english: 'Cat', kadazan: 'Tingau', malay: 'Kucing', example: 'Tingau ku diti.', exampleEnglish: 'This is my cat.', exampleMalay: 'Ini kucing saya.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Bird', kadazan: 'Tombolog', malay: 'Burung', example: 'Tumulud ih tombolog.', exampleEnglish: 'The bird flies.', exampleMalay: 'Burung itu terbang.', category: 'Animals', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Rhinoceros_Hornbill_-_perched.jpg/800px-Rhinoceros_Hornbill_-_perched.jpg' },
+    { english: 'Bird', kadazan: 'Tombolog', malay: 'Burung', example: 'Tumulud ih tombolog.', exampleEnglish: 'The bird flies.', exampleMalay: 'Burung itu terbang.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1552728089-5716503c80ff?auto=format&fit=crop&q=80&w=600' },
     { english: 'Fish', kadazan: 'Sada', malay: 'Ikan', example: 'Aso sada id taang.', exampleEnglish: 'There is no fish in the market.', exampleMalay: 'Tiada ikan di pasar.', category: 'Animals', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Oreochromis-niloticus-Nairobi.JPG/960px-Oreochromis-niloticus-Nairobi.JPG' },
     { english: 'Chicken', kadazan: 'Manuk', malay: 'Ayam', example: 'Panggulon ku ih manuk.', exampleEnglish: 'I will hit the chicken.', exampleMalay: 'Saya akan pukul ayam itu.', category: 'Animals', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg' }
   ],
@@ -40,18 +40,18 @@ const STATIC_VOCABULARY: Record<string, WordPair[]> = {
     { english: 'I love you', kadazan: 'Langad zou dia', malay: 'Saya sayang awak', example: 'Langad zou dia kopio.', exampleEnglish: 'I love you so much.', exampleMalay: 'Saya sangat sayang awak.', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&q=80&w=600' }
   ],
   'Nature': [
-    { english: 'Sun', kadazan: 'Tadau', malay: 'Matahari', example: 'Pana kinohodion tadau.', exampleEnglish: 'The sun is hot today.', exampleMalay: 'Matahari panas hari ini.', category: 'Nature', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/The_Sun_in_white_light.jpg/960px-The_Sun_in_white_light.jpg' },
+    { english: 'Sun', kadazan: 'Tadau', malay: 'Matahari', example: 'Pana kinohodion tadau.', exampleEnglish: 'The sun is hot today.', exampleMalay: 'Matahari panas hari ini.', category: 'Nature', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Sun_icon%2C_yellow.svg/1024px-Sun_icon%2C_yellow.svg.png' },
     { english: 'Moon', kadazan: 'Vuhan', malay: 'Bulan', example: 'Avang kopio ih vuhan.', exampleEnglish: 'The moon is very bright.', exampleMalay: 'Bulan itu sangat terang.', category: 'Nature', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/FullMoon2010.jpg/960px-FullMoon2010.jpg' },
     { english: 'River', kadazan: 'Bawang', malay: 'Sungai', example: 'Agayo Bawang Penampang.', exampleEnglish: 'Penampang River is big.', exampleMalay: 'Sungai Penampang besar.', category: 'Nature', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Kinabatangan_River_%2814154417142%29.jpg/960px-Kinabatangan_River_%2814154417142%29.jpg' },
     { english: 'Tree', kadazan: 'Puun', malay: 'Pokok', example: 'Adalaan kawanit puun diti.', exampleEnglish: 'This tree is very tall.', exampleMalay: 'Pokok ini sangat tinggi.', category: 'Nature', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Usamljeni_jasen_-_panoramio_%28cropped%29.jpg/960px-Usamljeni_jasen_-_panoramio_%28cropped%29.jpg' },
     { english: 'Mountain', kadazan: 'Nuhu', malay: 'Gunung', example: 'Nuhu Kinabalu.', exampleEnglish: 'Mount Kinabalu.', exampleMalay: 'Gunung Kinabalu.', category: 'Nature', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Kinabalu_Sabah_Borneo_Kampong_Kundasang_panorama_2.jpg/960px-Kinabalu_Sabah_Borneo_Kampong_Kundasang_panorama_2.jpg' }
   ],
   'Family': [
-    { english: 'Father', kadazan: 'Ama', malay: 'Bapa', example: 'Mongoi zou id ama ku.', exampleEnglish: 'I am going to my father.', exampleMalay: 'Saya pergi ke bapa saya.', category: 'Family', imageUrl: './images/father.jpg' },
+    { english: 'Father', kadazan: 'Ama', malay: 'Bapa', example: 'Mongoi zou id ama ku.', exampleEnglish: 'I am going to my father.', exampleMalay: 'Saya pergi ke bapa saya.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1480455624313-e29b44bbfde1?auto=format&fit=crop&q=80&w=600' },
     { english: 'Mother', kadazan: 'Ina', malay: 'Ibu', example: 'Koupusan ku ih ina ku.', exampleEnglish: 'I love my mother.', exampleMalay: 'Saya sayang ibu saya.', category: 'Family', imageUrl: './images/mother.jpg' },
-    { english: 'Child', kadazan: 'Tanak', malay: 'Anak', example: 'Totoloo nodi ih tanak.', exampleEnglish: 'The child is crying.', exampleMalay: 'Anak itu menangis.', category: 'Family', imageUrl: './images/child.jpg' },
+    { english: 'Child', kadazan: 'Tanak', malay: 'Anak', example: 'Totoloo nodi ih tanak.', exampleEnglish: 'The child is crying.', exampleMalay: 'Anak itu menangis.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1544365558-35aa4afcf11f?auto=format&fit=crop&q=80&w=600' },
     { english: 'Sibling', kadazan: 'Tobpinai', malay: 'Keluarga/Adik-beradik', example: 'Kotiop tobpinai ku diti.', exampleEnglish: 'My siblings are many.', exampleMalay: 'Adik-beradik saya ramai.', category: 'Family', imageUrl: './images/siblings.jpg' },
-    { english: 'Grandparent', kadazan: 'Odu', malay: 'Nenek/Datuk', example: 'Minsoi odu id kampung.', exampleEnglish: 'Grandparent went to the village.', exampleMalay: 'Nenek ke kampung.', category: 'Family', imageUrl: './images/grandparents.jpg' }
+    { english: 'Grandparent', kadazan: 'Odu', malay: 'Nenek/Datuk', example: 'Minsoi odu id kampung.', exampleEnglish: 'Grandparent went to the village.', exampleMalay: 'Nenek ke kampung.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1626315869436-d68aeb165eed?auto=format&fit=crop&q=80&w=600' }
   ]
 };
 
@@ -203,6 +203,6 @@ export const checkSentence = async (english: string, userKadazan: string): Promi
 // Re-export interface if necessary. Or remove if already defined above.
 // Handled above.
 
-export const getSentenceBuilderChallenge = async (): Promise<SentenceChallenge> => {
-  return Promise.resolve(STATIC_SENTENCES[Math.floor(Math.random() * STATIC_SENTENCES.length)]);
+export const getSentenceBuilderChallenge = async (completedCount: number = 0): Promise<SentenceChallenge> => {
+  return Promise.resolve(STATIC_SENTENCES[Math.floor(completedCount / 10) % STATIC_SENTENCES.length]);
 };
