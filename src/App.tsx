@@ -434,7 +434,7 @@ export default function App() {
                   disabled={loading}
                   className="w-full py-4 bg-white text-slate-800 border-[3px] border-slate-200 rounded-[2.5rem] font-black text-lg shadow-md hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-70 disabled:active:scale-100"
                 >
-                  <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-6 h-6" />
+                  <img src="https://www.svgrepo.com/show/475656/google-color.svg" referrerPolicy="no-referrer" alt="Google" className="w-6 h-6" />
                   <span>Sign in with Google</span>
                 </button>
              </div>
@@ -514,7 +514,7 @@ export default function App() {
                     onClick={() => handleStartVocabulary(cat.name)}
                     className="aspect-square relative rounded-[2rem] sm:rounded-[3.5rem] overflow-hidden flex flex-col justify-between hover:translate-x-1 hover:translate-y-1 hover:shadow-sm transition-all group shadow-xl active:scale-95 traditional-card border-b-4 sm:border-b-8 border-r-4 sm:border-r-8 border-black p-0"
                  >
-                    <img src={cat.image} alt={cat.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                    <img src={cat.image} referrerPolicy="no-referrer" alt={cat.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
                     
                     <div className="relative z-10 p-4 sm:p-8 h-full flex flex-col justify-end items-start text-white w-full">
@@ -575,42 +575,46 @@ export default function App() {
              </div>
 
              <div className="grid grid-cols-1 gap-6">
-                <div className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-200 flex items-center justify-between shadow-sm">
-                   <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center text-xl shadow-inner">
-                         <i className="fas fa-question text-xl"></i>
+                <div className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-200 flex flex-col gap-4 shadow-sm">
+                   <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                         <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                            <i className="fas fa-spell-check text-xl"></i>
+                         </div>
+                         <div>
+                           <h4 className="font-black text-lg text-slate-900 leading-none">Spelling Exercises</h4>
+                           <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Words written correctly</p>
+                         </div>
                       </div>
-                      <div>
-                        <h4 className="font-black text-lg text-slate-900 leading-none">Vocabulary Guide Progress</h4>
-                      </div>
+                      <span className="text-2xl font-black text-black">{Math.min(userProgress.spellingCompleted, 100)}%</span>
                    </div>
-                   <span className="text-3xl font-black text-black">{userProgress.quizzesCompleted}</span>
+                   <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden border border-slate-200">
+                      <div 
+                        className="h-full bg-emerald-500 rounded-full transition-all duration-1000" 
+                        style={{ width: `${Math.min(userProgress.spellingCompleted, 100)}%` }}
+                      ></div>
+                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-200 flex items-center justify-between shadow-sm">
-                   <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-xl shadow-inner">
-                         <i className="fas fa-spell-check text-xl"></i>
+                <div className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-200 flex flex-col gap-4 shadow-sm">
+                   <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                         <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                            <i className="fas fa-feather-pointed text-xl"></i>
+                         </div>
+                         <div>
+                           <h4 className="font-black text-lg text-slate-900 leading-none">Sentences Built</h4>
+                           <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Grammar mastered</p>
+                         </div>
                       </div>
-                      <div>
-                        <h4 className="font-black text-lg text-slate-900 leading-none">Spelling Exercises</h4>
-                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Words written correctly</p>
-                      </div>
+                      <span className="text-2xl font-black text-black">{Math.min(userProgress.sentencesCompleted, 100)}%</span>
                    </div>
-                   <span className="text-3xl font-black text-black">{userProgress.spellingCompleted}</span>
-                </div>
-
-                <div className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-200 flex items-center justify-between shadow-sm">
-                   <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-xl shadow-inner">
-                         <i className="fas fa-feather-pointed text-xl"></i>
-                      </div>
-                      <div>
-                        <h4 className="font-black text-lg text-slate-900 leading-none">Sentences Built</h4>
-                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Grammar mastered</p>
-                      </div>
+                   <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden border border-slate-200">
+                      <div 
+                        className="h-full bg-blue-500 rounded-full transition-all duration-1000" 
+                        style={{ width: `${Math.min(userProgress.sentencesCompleted, 100)}%` }}
+                      ></div>
                    </div>
-                   <span className="text-3xl font-black text-black">{userProgress.sentencesCompleted}</span>
                 </div>
              </div>
 
@@ -636,7 +640,7 @@ export default function App() {
               {vocabulary.map((v, i) => (
                 <div key={i} className="bg-white p-4 sm:p-7 rounded-[2rem] sm:rounded-[3.5rem] border-2 border-slate-100 flex flex-col sm:flex-row items-center sm:items-stretch gap-4 sm:gap-10 group hover:border-amber-400 transition-all shadow-md relative overflow-hidden traditional-card">
                   <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-[1.5rem] sm:rounded-[2.5rem] overflow-hidden flex-shrink-0 border-4 border-white shadow-xl bg-slate-100 p-2 relative">
-                    <img src={v.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" alt={v.english} />
+                    <img src={v.imageUrl} referrerPolicy="no-referrer" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" alt={v.english} />
                     <div className="absolute inset-0 linangkit-accent opacity-5"></div>
                   </div>
                   <div className="flex-grow text-center sm:text-left flex flex-col">
@@ -665,7 +669,7 @@ export default function App() {
              <div className="relative w-full max-w-sm px-4 sm:px-0">
               <div className="absolute inset-0 bg-gradient-to-br from-red-600 to-black rounded-[2.5rem] sm:rounded-[4.5rem] rotate-3 shadow-2xl"></div>
               <div className="relative w-full aspect-square bg-slate-100 p-2 sm:p-4 rounded-[2rem] sm:rounded-[4rem] overflow-hidden border-4 sm:border-8 border-white shadow-xl group">
-                <img src={spellingChallenge.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2s]" alt="Spelling Subject" />
+                <img src={spellingChallenge.imageUrl} referrerPolicy="no-referrer" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2s]" alt="Spelling Subject" />
                 <div className="absolute inset-0 bg-black/5"></div>
                 <div className="absolute inset-x-0 bottom-0 coral-accent h-6 opacity-40"></div>
               </div>
