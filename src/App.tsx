@@ -11,11 +11,9 @@ import {
   checkSentence, 
   getSpellingChallenge, 
   generateImage, 
-  generateSpeech,
   getSentenceBuilderChallenge,
   SentenceChallenge
 } from './services/geminiService';
-import { decode, decodeAudioData } from './services/audioService';
 
 // Verified High-Quality Unsplash Images
 const CATEGORIES = [
@@ -99,7 +97,7 @@ export default function App() {
   
   // Audio State
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   
   // Caches
   const vocabularyCache = useRef<Record<string, WordPair[]>>({});
@@ -151,30 +149,27 @@ export default function App() {
 
   const handlePlayAudio = async (text: string) => {
     try {
-      setFeedbackMsg('Generating audio... (1-3s)');
       setPlayingAudio(text);
-      const base64Audio = await generateSpeech(text);
-      setFeedbackMsg('');
-      if (base64Audio) {
-        if (!audioContextRef.current) {
-          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-        }
-        const ctx = audioContextRef.current;
-        const bytes = decode(base64Audio);
-        const buffer = await decodeAudioData(bytes, ctx, 24000, 1);
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        source.connect(ctx.destination);
-        source.onended = () => setPlayingAudio(null);
-        source.start();
-      } else {
-        setPlayingAudio(null);
+      if (audioRef.current) {
+        audioRef.current.pause();
       }
+      
+      const filename = text.toLowerCase().replace(/[^a-z0-9]/g, '_') + '.mp3';
+      let audioUrl = import.meta.env.BASE_URL + "audio/" + filename;
+      if (audioUrl.startsWith('//')) audioUrl = audioUrl.substring(1); // safety
+      
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      
+      audio.onended = () => setPlayingAudio(null);
+      audio.onerror = () => {
+         console.error("Audio file play error");
+         setPlayingAudio(null);
+      };
+      await audio.play();
     } catch (e) {
       console.error("Audio failed", e);
       setPlayingAudio(null);
-      setFeedbackMsg('');
-      alert("Error playing audio. Ensure your browser supports it.");
     }
   };
 
@@ -606,7 +601,7 @@ export default function App() {
                    <i className="fas fa-trophy text-[10rem]"></i>
                 </div>
                 <p className="text-amber-400 font-black tracking-widest text-sm uppercase mb-2">Total Score</p>
-                <h2 className="text-7xl font-black kadazan-title italic">{userProgress.totalScore}</h2>
+                <h2 className="text-7xl font-black kadazan-title italic">{userProgress.totalScore}%</h2>
              </div>
 
              <div className="grid grid-cols-1 gap-6">
@@ -616,8 +611,7 @@ export default function App() {
                          <i className="fas fa-question text-xl"></i>
                       </div>
                       <div>
-                        <h4 className="font-black text-lg text-slate-900 leading-none">Quizzes Completed</h4>
-                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Vocabulary tests</p>
+                        <h4 className="font-black text-lg text-slate-900 leading-none">Vocabulary Guide Progress</h4>
                       </div>
                    </div>
                    <span className="text-3xl font-black text-black">{userProgress.quizzesCompleted}</span>

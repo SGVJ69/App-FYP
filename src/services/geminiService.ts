@@ -13,7 +13,7 @@ const STATIC_VOCABULARY: Record<string, WordPair[]> = {
   'Animals': [
     { english: 'Dog', kadazan: 'Tasu', malay: 'Anjing', example: 'Agayo ilo tasu.', exampleEnglish: 'That dog is big.', exampleMalay: 'Anjing itu besar.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600' },
     { english: 'Cat', kadazan: 'Tingau', malay: 'Kucing', example: 'Tingau ku diti.', exampleEnglish: 'This is my cat.', exampleMalay: 'Ini kucing saya.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Bird', kadazan: 'Tombolog', malay: 'Burung', example: 'Tumulud ih tombolog.', exampleEnglish: 'The bird flies.', exampleMalay: 'Burung itu terbang.', category: 'Animals', imageUrl: '/images/tombolog.jpg' },
+    { english: 'Bird', kadazan: 'Tombolog', malay: 'Burung', example: 'Tumulud ih tombolog.', exampleEnglish: 'The bird flies.', exampleMalay: 'Burung itu terbang.', category: 'Animals', imageUrl: './images/tombolog.jpg' },
     { english: 'Fish', kadazan: 'Sada', malay: 'Ikan', example: 'Aso sada id taang.', exampleEnglish: 'There is no fish in the market.', exampleMalay: 'Tiada ikan di pasar.', category: 'Animals', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Oreochromis-niloticus-Nairobi.JPG/960px-Oreochromis-niloticus-Nairobi.JPG' },
     { english: 'Chicken', kadazan: 'Manuk', malay: 'Ayam', example: 'Panggulon ku ih manuk.', exampleEnglish: 'I will hit the chicken.', exampleMalay: 'Saya akan pukul ayam itu.', category: 'Animals', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg' }
   ],
@@ -47,11 +47,11 @@ const STATIC_VOCABULARY: Record<string, WordPair[]> = {
     { english: 'Mountain', kadazan: 'Nuhu', malay: 'Gunung', example: 'Nuhu Kinabalu.', exampleEnglish: 'Mount Kinabalu.', exampleMalay: 'Gunung Kinabalu.', category: 'Nature', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Kinabalu_Sabah_Borneo_Kampong_Kundasang_panorama_2.jpg/960px-Kinabalu_Sabah_Borneo_Kampong_Kundasang_panorama_2.jpg' }
   ],
   'Family': [
-    { english: 'Father', kadazan: 'Ama', malay: 'Bapa', example: 'Mongoi zou id ama ku.', exampleEnglish: 'I am going to my father.', exampleMalay: 'Saya pergi ke bapa saya.', category: 'Family', imageUrl: '/images/father.jpg' },
-    { english: 'Mother', kadazan: 'Ina', malay: 'Ibu', example: 'Koupusan ku ih ina ku.', exampleEnglish: 'I love my mother.', exampleMalay: 'Saya sayang ibu saya.', category: 'Family', imageUrl: '/images/mother.jpg' },
-    { english: 'Child', kadazan: 'Tanak', malay: 'Anak', example: 'Totoloo nodi ih tanak.', exampleEnglish: 'The child is crying.', exampleMalay: 'Anak itu menangis.', category: 'Family', imageUrl: '/images/child.jpg' },
-    { english: 'Sibling', kadazan: 'Tobpinai', malay: 'Keluarga/Adik-beradik', example: 'Kotiop tobpinai ku diti.', exampleEnglish: 'My siblings are many.', exampleMalay: 'Adik-beradik saya ramai.', category: 'Family', imageUrl: '/images/siblings.jpg' },
-    { english: 'Grandparent', kadazan: 'Odu', malay: 'Nenek/Datuk', example: 'Minsoi odu id kampung.', exampleEnglish: 'Grandparent went to the village.', exampleMalay: 'Nenek ke kampung.', category: 'Family', imageUrl: '/images/grandparents.jpg' }
+    { english: 'Father', kadazan: 'Ama', malay: 'Bapa', example: 'Mongoi zou id ama ku.', exampleEnglish: 'I am going to my father.', exampleMalay: 'Saya pergi ke bapa saya.', category: 'Family', imageUrl: './images/father.jpg' },
+    { english: 'Mother', kadazan: 'Ina', malay: 'Ibu', example: 'Koupusan ku ih ina ku.', exampleEnglish: 'I love my mother.', exampleMalay: 'Saya sayang ibu saya.', category: 'Family', imageUrl: './images/mother.jpg' },
+    { english: 'Child', kadazan: 'Tanak', malay: 'Anak', example: 'Totoloo nodi ih tanak.', exampleEnglish: 'The child is crying.', exampleMalay: 'Anak itu menangis.', category: 'Family', imageUrl: './images/child.jpg' },
+    { english: 'Sibling', kadazan: 'Tobpinai', malay: 'Keluarga/Adik-beradik', example: 'Kotiop tobpinai ku diti.', exampleEnglish: 'My siblings are many.', exampleMalay: 'Adik-beradik saya ramai.', category: 'Family', imageUrl: './images/siblings.jpg' },
+    { english: 'Grandparent', kadazan: 'Odu', malay: 'Nenek/Datuk', example: 'Minsoi odu id kampung.', exampleEnglish: 'Grandparent went to the village.', exampleMalay: 'Nenek ke kampung.', category: 'Family', imageUrl: './images/grandparents.jpg' }
   ]
 };
 
