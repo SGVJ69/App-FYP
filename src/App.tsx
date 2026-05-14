@@ -52,7 +52,7 @@ const CATEGORIES = [
 const DEFAULT_HOME_IMAGE = "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Kinabalu_Sabah_Borneo_Kampong_Kundasang_panorama_2.jpg/960px-Kinabalu_Sabah_Borneo_Kampong_Kundasang_panorama_2.jpg";
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>(Screen.HOME);
+  const [currentScreen, setCurrentScreen] = useState<Screen>(Screen.LOGIN);
   const [homeImageUrl, setHomeImageUrl] = useState(DEFAULT_HOME_IMAGE);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
@@ -285,6 +285,58 @@ export default function App() {
     }
 
     switch (currentScreen) {
+      case Screen.LOGIN:
+        return (
+          <div className="flex flex-col items-center py-6 sm:py-10 page-fade-in w-full max-w-sm mx-auto">
+             <div className="relative mb-6 w-full">
+               <div className="absolute -inset-6 bg-gradient-to-tr from-amber-400 via-red-600 to-black rounded-[4rem] blur-xl opacity-30 animate-pulse"></div>
+               <div className="relative bg-white p-3 rounded-[3.5rem] shadow-2xl border-4 border-amber-100 overflow-hidden">
+                 <img 
+                    src={homeImageUrl}
+                    className="w-full h-48 sm:h-56 object-cover rounded-[3rem]" 
+                    alt="Mount Kinabalu" 
+                    referrerPolicy="no-referrer"
+                 />
+                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent rounded-[3rem] pointer-events-none"></div>
+                 <div className="absolute bottom-6 left-8 right-8 text-white">
+                    <p className="text-amber-400 text-[10px] sm:text-xs font-black tracking-[0.4em] uppercase mb-1 drop-shadow-md">K-LEARN</p>
+                    <h2 className="text-3xl sm:text-4xl font-black leading-tight italic kadazan-title drop-shadow-lg">Kopivosian</h2>
+                 </div>
+               </div>
+             </div>
+
+             <div className="w-full bg-white p-8 rounded-[3.5rem] shadow-2xl border-4 border-slate-900 border-b-[10px] mb-6 space-y-6">
+                <div className="text-center mb-2">
+                  <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">Login to Learn</h3>
+                  <p className="text-amber-600 font-black text-xs tracking-widest mt-1">SABAH HERITAGE</p>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2 pl-4">Username / Email</label>
+                    <input type="text" placeholder="ngaran@example.com" className="w-full bg-slate-50 border-[3px] border-slate-200 rounded-[2rem] px-6 py-4 font-bold text-slate-800 placeholder:text-slate-300 focus:outline-none focus:border-amber-400 focus:bg-white transition-all shadow-inner" />
+                  </div>
+                  <div>
+                     <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2 pl-4">Password</label>
+                     <input type="password" placeholder="••••••••" className="w-full bg-slate-50 border-[3px] border-slate-200 rounded-[2rem] px-6 py-4 font-bold text-slate-800 placeholder:text-slate-300 focus:outline-none focus:border-amber-400 focus:bg-white transition-all shadow-inner" />
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => setCurrentScreen(Screen.HOME)}
+                  className="w-full py-5 bg-red-600 text-white rounded-[2.5rem] font-black text-xl shadow-xl hover:bg-red-700 transition-all active:scale-95 flex items-center justify-center gap-4 group border-b-[6px] border-black mt-2"
+                >
+                  <span>TUMAMONG (LOGIN)</span>
+                  <i className="fas fa-arrow-right text-amber-400 group-hover:translate-x-2 transition-transform"></i>
+                </button>
+             </div>
+             
+             <p className="text-slate-500 font-bold text-sm bg-white/80 px-6 py-2 rounded-full border border-slate-200 shadow-sm">
+                Don't have an account? <span className="text-red-600 cursor-pointer hover:underline font-black">Register Here</span>
+             </p>
+          </div>
+        );
+
       case Screen.HOME:
         return (
           <div className="flex flex-col items-center py-4">
@@ -743,7 +795,7 @@ export default function App() {
   };
 
   return (
-    <Layout currentScreen={currentScreen} onNavigate={setCurrentScreen} title={currentScreen === Screen.HOME ? undefined : currentScreen.toString()}>
+    <Layout currentScreen={currentScreen} onNavigate={setCurrentScreen} title={currentScreen === Screen.HOME || currentScreen === Screen.LOGIN ? undefined : currentScreen.toString()}>
       <div className="w-full h-full relative z-10">
         {renderScreen()}
       </div>

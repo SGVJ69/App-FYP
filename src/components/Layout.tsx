@@ -10,15 +10,15 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavigate, title }) => {
-  const isHome = currentScreen === Screen.HOME;
+  const isHome = currentScreen === Screen.HOME || currentScreen === Screen.LOGIN;
 
   const handleBack = () => {
     if (currentScreen === Screen.ABOUT) {
-      onNavigate(Screen.HOME);
-    } else if (currentScreen !== Screen.DASHBOARD && currentScreen !== Screen.HOME) {
+      onNavigate(Screen.LOGIN);
+    } else if (currentScreen !== Screen.DASHBOARD && currentScreen !== Screen.HOME && currentScreen !== Screen.LOGIN) {
       onNavigate(Screen.DASHBOARD);
     } else {
-      onNavigate(Screen.HOME);
+      onNavigate(Screen.LOGIN);
     }
   };
 
