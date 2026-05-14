@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Screen, WordPair, QuizQuestion, SpellingChallenge } from './types';
 import { Layout } from './components/Layout';
 import { auth } from './firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { 
   getVocabulary, 
   generateQuiz, 
@@ -308,6 +308,22 @@ export default function App() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setAuthError(null);
+    setLoading(true);
+    setLoadingText('Logging in with Google...');
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      setCurrentScreen(Screen.HOME);
+    } catch (err: any) {
+      console.error(err);
+      setAuthError(err.message || 'Google Sign-In failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const renderScreen = () => {
     if (loading) {
       return (
@@ -389,6 +405,21 @@ export default function App() {
                 >
                   <span>{isRegistering ? 'DAFTAR (REGISTER)' : 'TUMAMONG (LOGIN)'}</span>
                   {!loading && <i className="fas fa-arrow-right text-amber-400 group-hover:translate-x-2 transition-transform"></i>}
+                </button>
+
+                <div className="flex items-center space-x-4 my-2">
+                  <div className="flex-1 border-t-2 border-slate-200"></div>
+                  <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">or</span>
+                  <div className="flex-1 border-t-2 border-slate-200"></div>
+                </div>
+
+                <button 
+                  onClick={handleGoogleSignIn}
+                  disabled={loading}
+                  className="w-full py-4 bg-white text-slate-800 border-[3px] border-slate-200 rounded-[2.5rem] font-black text-lg shadow-md hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-70 disabled:active:scale-100"
+                >
+                  <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-6 h-6" />
+                  <span>Sign in with Google</span>
                 </button>
              </div>
              
