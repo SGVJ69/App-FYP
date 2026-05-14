@@ -19,7 +19,7 @@ import {
 const CATEGORIES = [
   { 
     name: 'Animals', 
-    image: 'https://loremflickr.com/cache/resized/65535_51788200996_08b736fd59_z_600_400_nofilter.jpg', // Group of animals
+    image: 'https://images.unsplash.com/photo-1516934024742-b461fba47600?auto=format&fit=crop&q=80&w=600', // Group of animals
     subtitle: 'TAYAM (ANIMALS)'
   },
   { 
@@ -95,10 +95,6 @@ export default function App() {
   const [selectedWords, setSelectedWords] = useState<{id: string, text: string}[]>([]);
   const [sentenceResult, setSentenceResult] = useState<{ correct: boolean; feedback: string; correction?: string } | null>(null);
   
-  // Audio State
-  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  
   // Caches
   const vocabularyCache = useRef<Record<string, WordPair[]>>({});
   const quizCache = useRef<Record<string, QuizQuestion[]>>({});
@@ -144,32 +140,6 @@ export default function App() {
       await setDoc(progressRef, newProgress, { merge: true });
     } catch (e) {
       console.error("Failed to update progress:", e);
-    }
-  };
-
-  const handlePlayAudio = async (text: string) => {
-    try {
-      setPlayingAudio(text);
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      
-      const filename = text.toLowerCase().replace(/[^a-z0-9]/g, '_') + '.mp3';
-      let audioUrl = import.meta.env.BASE_URL + "audio/" + filename;
-      if (audioUrl.startsWith('//')) audioUrl = audioUrl.substring(1); // safety
-      
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-      
-      audio.onended = () => setPlayingAudio(null);
-      audio.onerror = () => {
-         console.error("Audio file play error");
-         setPlayingAudio(null);
-      };
-      await audio.play();
-    } catch (e) {
-      console.error("Audio failed", e);
-      setPlayingAudio(null);
     }
   };
 
@@ -682,14 +652,6 @@ export default function App() {
                       </div>
                     )}
                   </div>
-                  <button 
-                    onClick={() => handlePlayAudio(v.kadazan)}
-                    disabled={playingAudio === v.kadazan}
-                    className={`w-12 h-12 sm:w-16 sm:h-16 mt-2 sm:mt-0 ${playingAudio === v.kadazan ? 'bg-amber-400 text-black animate-pulse' : 'bg-black text-white'} rounded-full flex items-center justify-center hover:bg-amber-400 hover:text-black transition-all shadow-xl active:scale-90 flex-shrink-0 self-center`} 
-                    aria-label="Listen"
-                  >
-                    <i className={`fas ${playingAudio === v.kadazan ? 'fa-spinner fa-spin' : 'fa-volume-up'} text-lg sm:text-xl`}></i>
-                  </button>
                 </div>
               ))}
             </div>
