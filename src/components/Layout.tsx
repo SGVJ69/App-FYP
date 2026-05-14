@@ -1,6 +1,8 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Screen } from '../types';
+import { auth } from '../firebase';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,14 +13,25 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavigate, title }) => {
   const isHome = currentScreen === Screen.HOME || currentScreen === Screen.LOGIN;
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, u => setUser(u));
+    return () => unsub();
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    onNavigate(Screen.LOGIN);
+  };
 
   const handleBack = () => {
     if (currentScreen === Screen.ABOUT) {
-      onNavigate(Screen.LOGIN);
+      onNavigate(Screen.HOME);
     } else if (currentScreen !== Screen.DASHBOARD && currentScreen !== Screen.HOME && currentScreen !== Screen.LOGIN) {
       onNavigate(Screen.DASHBOARD);
     } else {
-      onNavigate(Screen.LOGIN);
+      onNavigate(Screen.HOME);
     }
   };
 
@@ -45,7 +58,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavig
           <div className="flex items-center gap-3">
             <div 
               className="relative group cursor-pointer" 
-              onClick={() => onNavigate(Screen.HOME)}
+              onClick={() => {
+                if (user) {
+                  onNavigate(Screen.HOME);
+                } else {
+                  onNavigate(Screen.LOGIN);
+                }
+              }}
             >
               <div className="relative px-2 py-1 bg-black border-2 border-amber-400 rounded-lg flex items-center justify-center shadow-lg overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-tr from-amber-900/20 to-white/10"></div>
@@ -66,9 +85,19 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavig
         </div>
 
         {/* Minimalist Right Decoration */}
-        <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 tracking-widest uppercase">
-          <span className="hidden sm:inline">Sabah Heritage</span>
-          <div className="w-2 h-2 bg-red-600 rotate-45"></div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-[10px] font-black text-slate-300 tracking-widest uppercase">
+            <span className="hidden sm:inline">Sabah Heritage</span>
+            <div className="w-2 h-2 bg-red-600 rotate-45"></div>
+          </div>
+          {user && (
+            <button
+              onClick={handleLogout}
+              className="text-xs font-bold text-red-600 hover:text-red-800 transition-colors bg-red-50 px-3 py-1.5 rounded-full border border-red-100"
+            >
+              LOGOUT
+            </button>
+          )}
         </div>
       </header>
 

@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Screen, WordPair, QuizQuestion, SpellingChallenge } from './types';
 import { Layout } from './components/Layout';
+import { auth } from './firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "firebase/auth";
 import { 
   getVocabulary, 
   generateQuiz, 
@@ -56,6 +58,13 @@ export default function App() {
   const [homeImageUrl, setHomeImageUrl] = useState(DEFAULT_HOME_IMAGE);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
+  // Auth State
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
+
   // Data States
   const [vocabulary, setVocabulary] = useState<WordPair[]>([]);
   const [quiz, setQuiz] = useState<QuizQuestion[]>([]);
@@ -90,8 +99,17 @@ export default function App() {
   const quizCache = useRef<Record<string, QuizQuestion[]>>({});
 
   useEffect(() => {
-    // Replaced dynamic generation with static for instant loading
-  }, []);
+    // Check if user is logged in natively
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        if (currentScreen === Screen.LOGIN) {
+          setCurrentScreen(Screen.HOME);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, [currentScreen]);
 
   const handlePlayAudio = async (text: string) => {
     try {
@@ -265,6 +283,31 @@ export default function App() {
     }
   };
 
+  const handleAuthSubmit = async () => {
+    setAuthError(null);
+    if (!email || !password) {
+      setAuthError('Please fill in all fields.');
+      return;
+    }
+    
+    setLoading(true);
+    setLoadingText(isRegistering ? 'Registering...' : 'Logging in...');
+    
+    try {
+      if (isRegistering) {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
+      setCurrentScreen(Screen.HOME);
+    } catch (err: any) {
+      console.error(err);
+      setAuthError(err.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const renderScreen = () => {
     if (loading) {
       return (
@@ -304,35 +347,53 @@ export default function App() {
                  </div>
                </div>
              </div>
-
              <div className="w-full bg-white p-8 rounded-[3.5rem] shadow-2xl border-4 border-slate-900 border-b-[10px] mb-6 space-y-6">
                 <div className="text-center mb-2">
-                  <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">Login to Learn</h3>
+                  <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">{isRegistering ? 'Create Account' : 'Login to Learn'}</h3>
                   <p className="text-amber-600 font-black text-xs tracking-widest mt-1">SABAH HERITAGE</p>
                 </div>
 
+                {authError && (
+                  <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl">
+                    <p className="text-sm font-bold text-red-700">{authError}</p>
+                  </div>
+                )}
+
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2 pl-4">Username / Email</label>
-                    <input type="text" placeholder="ngaran@example.com" className="w-full bg-slate-50 border-[3px] border-slate-200 rounded-[2rem] px-6 py-4 font-bold text-slate-800 placeholder:text-slate-300 focus:outline-none focus:border-amber-400 focus:bg-white transition-all shadow-inner" />
+                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2 pl-4">Email</label>
+                    <input 
+                      type="email" 
+                      placeholder="ngaran@example.com" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full bg-slate-50 border-[3px] border-slate-200 rounded-[2rem] px-6 py-4 font-bold text-slate-800 placeholder:text-slate-300 focus:outline-none focus:border-amber-400 focus:bg-white transition-all shadow-inner" 
+                    />
                   </div>
                   <div>
                      <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2 pl-4">Password</label>
-                     <input type="password" placeholder="••••••••" className="w-full bg-slate-50 border-[3px] border-slate-200 rounded-[2rem] px-6 py-4 font-bold text-slate-800 placeholder:text-slate-300 focus:outline-none focus:border-amber-400 focus:bg-white transition-all shadow-inner" />
+                     <input 
+                       type="password" 
+                       placeholder="••••••••" 
+                       value={password}
+                       onChange={(e) => setPassword(e.target.value)}
+                       className="w-full bg-slate-50 border-[3px] border-slate-200 rounded-[2rem] px-6 py-4 font-bold text-slate-800 placeholder:text-slate-300 focus:outline-none focus:border-amber-400 focus:bg-white transition-all shadow-inner" 
+                     />
                   </div>
                 </div>
 
                 <button 
-                  onClick={() => setCurrentScreen(Screen.HOME)}
-                  className="w-full py-5 bg-red-600 text-white rounded-[2.5rem] font-black text-xl shadow-xl hover:bg-red-700 transition-all active:scale-95 flex items-center justify-center gap-4 group border-b-[6px] border-black mt-2"
+                  onClick={handleAuthSubmit}
+                  disabled={loading}
+                  className="w-full py-5 bg-red-600 text-white rounded-[2.5rem] font-black text-xl shadow-xl hover:bg-red-700 transition-all active:scale-95 flex items-center justify-center gap-4 group border-b-[6px] border-black mt-2 disabled:opacity-70 disabled:active:scale-100"
                 >
-                  <span>TUMAMONG (LOGIN)</span>
-                  <i className="fas fa-arrow-right text-amber-400 group-hover:translate-x-2 transition-transform"></i>
+                  <span>{isRegistering ? 'DAFTAR (REGISTER)' : 'TUMAMONG (LOGIN)'}</span>
+                  {!loading && <i className="fas fa-arrow-right text-amber-400 group-hover:translate-x-2 transition-transform"></i>}
                 </button>
              </div>
              
              <p className="text-slate-500 font-bold text-sm bg-white/80 px-6 py-2 rounded-full border border-slate-200 shadow-sm">
-                Don't have an account? <span className="text-red-600 cursor-pointer hover:underline font-black">Register Here</span>
+                {isRegistering ? 'Already have an account?' : "Don't have an account?"} <span onClick={() => setIsRegistering(!isRegistering)} className="text-red-600 cursor-pointer hover:underline font-black">{isRegistering ? 'Login Here' : 'Register Here'}</span>
              </p>
           </div>
         );
