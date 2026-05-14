@@ -151,20 +151,30 @@ export default function App() {
 
   const handlePlayAudio = async (text: string) => {
     try {
+      setFeedbackMsg('Generating audio... (1-3s)');
       setPlayingAudio(text);
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'id-ID'; // Use Indonesian or Malay as close approximation to Kadazan for pronunciation if possible
-        utterance.onend = () => setPlayingAudio(null);
-        utterance.onerror = () => setPlayingAudio(null);
-        window.speechSynthesis.speak(utterance);
+      const base64Audio = await generateSpeech(text);
+      setFeedbackMsg('');
+      if (base64Audio) {
+        if (!audioContextRef.current) {
+          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        }
+        const ctx = audioContextRef.current;
+        const bytes = decode(base64Audio);
+        const buffer = await decodeAudioData(bytes, ctx, 24000, 1);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.onended = () => setPlayingAudio(null);
+        source.start();
       } else {
         setPlayingAudio(null);
       }
     } catch (e) {
       console.error("Audio failed", e);
       setPlayingAudio(null);
+      setFeedbackMsg('');
+      alert("Error playing audio. Ensure your browser supports it.");
     }
   };
 
