@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Screen, WordPair, QuizQuestion, SpellingChallenge } from './types';
+import { Screen, WordPair, QuizQuestion, SpellingChallenge, UserProgress } from './types';
 import { Layout } from './components/Layout';
-import { auth } from './firebase';
+import { auth, db } from './firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { 
   getVocabulary, 
   generateQuiz, 
@@ -70,6 +71,12 @@ export default function App() {
   const [quiz, setQuiz] = useState<QuizQuestion[]>([]);
   const [spellingChallenge, setSpellingChallenge] = useState<SpellingChallenge | null>(null);
   const [sentenceChallenge, setSentenceChallenge] = useState<SentenceChallenge | null>(null);
+  const [userProgress, setUserProgress] = useState<UserProgress>({
+    totalScore: 0,
+    quizzesCompleted: 0,
+    spellingCompleted: 0,
+    sentencesCompleted: 0
+  });
   
   // Loading & Progress
   const [loading, setLoading] = useState(false);
@@ -100,9 +107,22 @@ export default function App() {
 
   useEffect(() => {
     // Check if user is logged in natively
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
+        try {
+          const progressRef = doc(db, 'users', currentUser.uid);
+          const docSnap = await getDoc(progressRef);
+          if (docSnap.exists()) {
+            setUserProgress(docSnap.data() as UserProgress);
+          } else {
+            const initialProgress = { totalScore: 0, quizzesCompleted: 0, spellingCompleted: 0, sentencesCompleted: 0 };
+            await setDoc(progressRef, initialProgress);
+            setUserProgress(initialProgress);
+          }
+        } catch (e) {
+          console.error("Failed to load progress:", e);
+        }
         if (currentScreen === Screen.LOGIN) {
           setCurrentScreen(Screen.HOME);
         }
@@ -110,6 +130,23 @@ export default function App() {
     });
     return () => unsubscribe();
   }, [currentScreen]);
+
+  const updateProgress = async (updates: Partial<UserProgress>) => {
+    if (!user) return;
+    
+    const newProgress = { ...userProgress };
+    for (const key in updates) {
+      (newProgress as any)[key] += (updates as any)[key];
+    }
+    
+    setUserProgress(newProgress);
+    try {
+      const progressRef = doc(db, 'users', user.uid);
+      await setDoc(progressRef, newProgress, { merge: true });
+    } catch (e) {
+      console.error("Failed to update progress:", e);
+    }
+  };
 
   const handlePlayAudio = async (text: string) => {
     try {
@@ -240,10 +277,16 @@ export default function App() {
     setLoading(true);
     try {
       const result = await checkSentence(sentenceChallenge.english, userSentence);
+      if (result.correct) {
+        updateProgress({ totalScore: 30, sentencesCompleted: 1 });
+      }
       setSentenceResult(result);
     } catch (e) {
       // Fallback simple check if API fails
       const isMatch = userSentence.toLowerCase().replace(/[.,!?]/g, '') === sentenceChallenge.kadazan.toLowerCase().replace(/[.,!?]/g, '');
+      if (isMatch) {
+         updateProgress({ totalScore: 30, sentencesCompleted: 1 });
+      }
       setSentenceResult({
         correct: isMatch,
         feedback: isMatch ? "Correct structure!" : "Keep trying!",
@@ -258,6 +301,7 @@ export default function App() {
   const checkSpelling = () => {
     if (!spellingChallenge) return;
     if (userSpelling.trim().toLowerCase() === spellingChallenge.kadazan.toLowerCase()) {
+      updateProgress({ totalScore: 20, spellingCompleted: 1 });
       setFeedbackMsg('KOPISIAN! (Excellent!) 🎉');
     } else {
       setFeedbackMsg('Ada kooti! (Not quite!)');
@@ -267,6 +311,7 @@ export default function App() {
   const handleQuizAnswer = (answer: string) => {
     if (answer === quiz[quizIndex].correctAnswer) {
       setScore(s => s + 1);
+      updateProgress({ totalScore: 10 });
       setFeedbackMsg('✅ OTOPOT! (Correct!) ' + quiz[quizIndex].explanation);
     } else {
       setFeedbackMsg('❌ ADA KOOTI! (Not quite!) ' + quiz[quizIndex].explanation);
@@ -278,6 +323,7 @@ export default function App() {
     if (quizIndex < quiz.length - 1) {
       setQuizIndex(q => q + 1);
     } else {
+      updateProgress({ quizzesCompleted: 1 });
       alert(`Quiz Completed! Results: ${score}/${quiz.length}`);
       setCurrentScreen(Screen.DASHBOARD);
     }
@@ -474,12 +520,21 @@ export default function App() {
       case Screen.DASHBOARD:
         return (
           <div className="space-y-12 page-fade-in duration-700">
-            <div className="flex flex-col gap-2">
-               <p className="text-red-600 font-black uppercase text-xs tracking-[0.5em] mb-1">Baino (Today)</p>
-               <h2 className="text-5xl font-black text-slate-900 tracking-tighter kadazan-title italic flex flex-col gap-2 relative mb-2">
-                 <span>Monguhup</span>
-                 <span className="text-lg sm:text-xl text-slate-500 font-bold not-italic tracking-normal">(Learning / Helping)</span>
-               </h2>
+            <div className="flex justify-between items-start">
+              <div className="flex flex-col gap-2">
+                 <p className="text-red-600 font-black uppercase text-xs tracking-[0.5em] mb-1">Baino (Today)</p>
+                 <h2 className="text-5xl font-black text-slate-900 tracking-tighter kadazan-title italic flex flex-col gap-2 relative mb-2">
+                   <span>Monguhup</span>
+                   <span className="text-lg sm:text-xl text-slate-500 font-bold not-italic tracking-normal">(Learning / Helping)</span>
+                 </h2>
+              </div>
+              <button 
+                onClick={() => setCurrentScreen(Screen.PROGRESS)} 
+                className="bg-amber-400 text-black px-4 py-2 mt-4 rounded-2xl font-black shadow-md border-b-4 border-amber-600 hover:translate-y-1 hover:border-b-2 active:scale-95 transition-all text-xs flex flex-col items-center justify-center gap-1"
+              >
+                <i className="fas fa-chart-line text-xl"></i>
+                <span>PROGRESS</span>
+              </button>
             </div>
 
             <div className="grid grid-cols-2 gap-6 mt-4">
@@ -535,6 +590,68 @@ export default function App() {
                   </p>
                </div>
             </div>
+          </div>
+        );
+
+      case Screen.PROGRESS:
+        return (
+          <div className="space-y-8 page-fade-in">
+             <div className="text-center bg-black text-white p-10 rounded-[3.5rem] border-4 border-amber-400 shadow-xl relative overflow-hidden traditional-card">
+                <div className="absolute -top-10 -right-10 opacity-10 rotate-12">
+                   <i className="fas fa-trophy text-[10rem]"></i>
+                </div>
+                <p className="text-amber-400 font-black tracking-widest text-sm uppercase mb-2">Total Score</p>
+                <h2 className="text-7xl font-black kadazan-title italic">{userProgress.totalScore}</h2>
+             </div>
+
+             <div className="grid grid-cols-1 gap-6">
+                <div className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-200 flex items-center justify-between shadow-sm">
+                   <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                         <i className="fas fa-question text-xl"></i>
+                      </div>
+                      <div>
+                        <h4 className="font-black text-lg text-slate-900 leading-none">Quizzes Completed</h4>
+                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Vocabulary tests</p>
+                      </div>
+                   </div>
+                   <span className="text-3xl font-black text-black">{userProgress.quizzesCompleted}</span>
+                </div>
+
+                <div className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-200 flex items-center justify-between shadow-sm">
+                   <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                         <i className="fas fa-spell-check text-xl"></i>
+                      </div>
+                      <div>
+                        <h4 className="font-black text-lg text-slate-900 leading-none">Spelling Exercises</h4>
+                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Words written correctly</p>
+                      </div>
+                   </div>
+                   <span className="text-3xl font-black text-black">{userProgress.spellingCompleted}</span>
+                </div>
+
+                <div className="bg-white p-6 rounded-[2.5rem] border-2 border-slate-200 flex items-center justify-between shadow-sm">
+                   <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-xl shadow-inner">
+                         <i className="fas fa-feather-pointed text-xl"></i>
+                      </div>
+                      <div>
+                        <h4 className="font-black text-lg text-slate-900 leading-none">Sentences Built</h4>
+                        <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mt-1">Grammar mastered</p>
+                      </div>
+                   </div>
+                   <span className="text-3xl font-black text-black">{userProgress.sentencesCompleted}</span>
+                </div>
+             </div>
+
+             <button 
+                onClick={() => setCurrentScreen(Screen.DASHBOARD)} 
+                className="w-full py-6 bg-slate-100 text-slate-800 rounded-[2rem] font-black text-lg border-2 border-slate-200 shadow-sm hover:bg-slate-200 hover:border-slate-300 transition-all flex items-center justify-center gap-2 group active:scale-95"
+             >
+                <i className="fas fa-arrow-left text-slate-400 group-hover:-translate-x-1 transition-transform"></i>
+                <span>Back to Dashboard</span>
+             </button>
           </div>
         );
 

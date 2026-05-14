@@ -1,5 +1,6 @@
 
 import { WordPair, QuizQuestion, SpellingChallenge } from "../types";
+import { GoogleGenAI, Modality } from "@google/genai";
 
 export interface SentenceChallenge {
   english: string;
@@ -107,7 +108,44 @@ export const generateImage = async (prompt: string): Promise<string> => {
   return 'https://images.unsplash.com/photo-1596423736561-392d4f29d28e?auto=format&fit=crop&q=80&w=800';
 };
 
+let ai: GoogleGenAI | null = null;
+const audioCache = new Map<string, string>();
+
+function getGenAI() {
+  if (!ai) {
+    ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  }
+  return ai;
+}
+
 export const generateSpeech = async (text: string): Promise<string | undefined> => {
+  if (audioCache.has(text)) {
+    return audioCache.get(text);
+  }
+  
+  try {
+    const aiClient = getGenAI();
+    const response = await aiClient.models.generateContent({
+      model: "gemini-3.1-flash-tts-preview",
+      contents: [{ parts: [{ text: `Pronounce the following text authentically as a native Kadazan speaker (similar to Malaysian/Indonesian phonetics but distinct to Sabah). Speak clearly: ${text}` }] }],
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Kore' },
+            },
+        },
+      },
+    });
+
+    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (base64Audio) {
+      audioCache.set(text, base64Audio);
+      return base64Audio;
+    }
+  } catch (e) {
+    console.error("Gemini TTS error:", e);
+  }
   return undefined;
 };
 

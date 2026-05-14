@@ -9,7 +9,15 @@ export enum Screen {
   QUIZ = 'QUIZ',
   FEEDBACK = 'FEEDBACK',
   LOADING = 'LOADING',
-  ABOUT = 'ABOUT'
+  ABOUT = 'ABOUT',
+  PROGRESS = 'PROGRESS'
+}
+
+export interface UserProgress {
+  totalScore: number;
+  quizzesCompleted: number;
+  spellingCompleted: number;
+  sentencesCompleted: number;
 }
 
 export interface WordPair {
