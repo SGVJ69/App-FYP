@@ -16,11 +16,17 @@ body {
     background-color: #fffef7;
     /* High-fidelity natural paper texture */
     background-image: url("https://www.transparenttextures.com/patterns/natural-paper.png");
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
 }
 
 .kadazan-title {
     font-family: 'Playfair Display', serif;
     letter-spacing: -0.02em;
+}
+
+button, a {
+    touch-action: manipulation;
 }
 
 /* Intricate Pinakol (Coral Beadwork) Border Pattern */
