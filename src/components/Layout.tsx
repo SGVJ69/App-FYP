@@ -101,7 +101,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentScreen, onNavig
         </div>
       </header>
 
-      <main className="w-full max-w-2xl p-6 flex-1 flex flex-col">
+      <main className="w-full max-w-2xl p-4 sm:p-6 flex-1 flex flex-col pt-6">
         {children}
       </main>
 

@@ -118,35 +118,66 @@ function getGenAI() {
   return ai;
 }
 
+export const preloadAudioList = async (texts: string[]) => {
+  for (const text of texts) {
+    if (!audioCache.has(text) && !fetchPromiseCache.has(text)) {
+      generateSpeech(text).catch(() => {});
+      await new Promise(r => setTimeout(r, 800)); // Stagger requests
+    }
+  }
+};
+
+const fetchPromiseCache = new Map<string, Promise<string | undefined>>();
+
 export const generateSpeech = async (text: string): Promise<string | undefined> => {
   if (audioCache.has(text)) {
     return audioCache.get(text);
   }
+  if (fetchPromiseCache.has(text)) {
+    return fetchPromiseCache.get(text);
+  }
+  
+  const promise = (async () => {
+    try {
+      const aiClient = getGenAI();
+      const response = await aiClient.models.generateContent({
+        model: "gemini-3.1-flash-tts-preview",
+        contents: [{ parts: [{ text: `Pronounce the following text authentically as a native Kadazan speaker (similar to Malaysian/Indonesian phonetics but distinct to Sabah). Speak clearly: ${text}` }] }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: 'Kore' },
+              },
+          },
+        },
+      });
+
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64Audio) {
+        audioCache.set(text, base64Audio);
+        return base64Audio;
+      }
+    } catch (e) {
+      console.error("Gemini TTS error:", e);
+    }
+    return undefined;
+  })();
+  
+  fetchPromiseCache.set(text, promise);
   
   try {
-    const aiClient = getGenAI();
-    const response = await aiClient.models.generateContent({
-      model: "gemini-3.1-flash-tts-preview",
-      contents: [{ parts: [{ text: `Pronounce the following text authentically as a native Kadazan speaker (similar to Malaysian/Indonesian phonetics but distinct to Sabah). Speak clearly: ${text}` }] }],
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: 'Kore' },
-            },
-        },
-      },
-    });
-
-    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-    if (base64Audio) {
-      audioCache.set(text, base64Audio);
-      return base64Audio;
-    }
-  } catch (e) {
-    console.error("Gemini TTS error:", e);
+    await promise;
+  } finally {
+    fetchPromiseCache.delete(text);
   }
-  return undefined;
+  
+  return promise;
+};
+
+export const preloadAllAudio = async () => {
+  const allTexts = [...Object.values(STATIC_VOCABULARY).flat().map(v => v.kadazan), ...STATIC_SENTENCES.map(s => s.kadazan)];
+  preloadAudioList(allTexts);
 };
 
 export const getVocabulary = async (category: string): Promise<WordPair[]> => {
