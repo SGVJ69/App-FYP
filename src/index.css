@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Playfair+Display:wght@900&display=swap');
+
+:root {
+    --kadazan-black: #050505;
+    --kadazan-red: #d62828;
+    --kadazan-gold: #f7b731;
+    --kadazan-coral: #ff4d4d;
+    --kadazan-white: #ffffff;
+}
+
+body {
+    font-family: 'Quicksand', sans-serif;
+    background-color: #fffef7;
+    /* High-fidelity natural paper texture */
+    background-image: url("https://www.transparenttextures.com/patterns/natural-paper.png");
+}
+
+.kadazan-title {
+    font-family: 'Playfair Display', serif;
+    letter-spacing: -0.02em;
+}
+
+/* Intricate Pinakol (Coral Beadwork) Border Pattern */
+.pattern-border {
+    background: 
+        linear-gradient(45deg, var(--kadazan-red) 25%, transparent 25%) -10px 0,
+        linear-gradient(-45deg, var(--kadazan-red) 25%, transparent 25%) -10px 0,
+        linear-gradient(45deg, transparent 75%, var(--kadazan-gold) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--kadazan-gold) 75%);
+    background-size: 20px 20px;
+    background-color: var(--kadazan-black);
+    height: 12px;
+    width: 100%;
+    border-bottom: 2px solid var(--kadazan-white);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Persistent Pinakol Beadwork Background Overlay */
+.beadwork-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.08;
+    /* Geometric Diamond Bead Pattern (Pinakol) */
+    background: 
+        radial-gradient(circle at 10px 10px, var(--kadazan-coral) 2px, transparent 0),
+        radial-gradient(circle at 30px 30px, var(--kadazan-gold) 2px, transparent 0),
+        radial-gradient(circle at 10px 30px, var(--kadazan-black) 2px, transparent 0),
+        radial-gradient(circle at 30px 10px, var(--kadazan-white) 2px, transparent 0);
+    background-size: 40px 40px;
+}
+
+.traditional-card {
+    border: 4px solid var(--kadazan-black);
+    border-left: 12px solid var(--kadazan-red);
+    border-right: 12px solid var(--kadazan-gold);
+    background: white;
+    box-shadow: 8px 8px 0px rgba(0,0,0,0.05);
+}
+
+.coral-accent {
+    background-color: var(--kadazan-coral);
+    background-image: radial-gradient(var(--kadazan-white) 1px, transparent 1px);
+    background-size: 8px 8px;
+}
+
+@keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+    100% { transform: translateY(0px); }
+}
+
+.animate-float {
+    animation: float 5s ease-in-out infinite;
+}
+
+/* Page Transition Simulation */
+.page-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
