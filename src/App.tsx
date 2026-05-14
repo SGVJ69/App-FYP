@@ -13,9 +13,7 @@ import {
   generateImage, 
   generateSpeech,
   getSentenceBuilderChallenge,
-  SentenceChallenge,
-  preloadAudioList,
-  preloadAllAudio
+  SentenceChallenge
 } from './services/geminiService';
 import { decode, decodeAudioData } from './services/audioService';
 
@@ -131,9 +129,6 @@ export default function App() {
       }
     });
     
-    // Globally preload all static audio gently to make it instantly responsive
-    preloadAllAudio();
-    
     return () => unsubscribe();
   }, [currentScreen]);
 
@@ -157,22 +152,13 @@ export default function App() {
   const handlePlayAudio = async (text: string) => {
     try {
       setPlayingAudio(text);
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      }
-      const base64Audio = await generateSpeech(text);
-      if (base64Audio) {
-        const audioBuffer = await decodeAudioData(
-          decode(base64Audio),
-          audioContextRef.current,
-          24000,
-          1
-        );
-        const source = audioContextRef.current.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(audioContextRef.current.destination);
-        source.onended = () => setPlayingAudio(null);
-        source.start();
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'id-ID'; // Use Indonesian or Malay as close approximation to Kadazan for pronunciation if possible
+        utterance.onend = () => setPlayingAudio(null);
+        utterance.onerror = () => setPlayingAudio(null);
+        window.speechSynthesis.speak(utterance);
       } else {
         setPlayingAudio(null);
       }
@@ -187,7 +173,6 @@ export default function App() {
     if (vocabularyCache.current[category]) {
       setVocabulary(vocabularyCache.current[category]);
       setCurrentScreen(Screen.VOCABULARY);
-      preloadAudioList(vocabularyCache.current[category].map(v => v.kadazan));
       return;
     }
     try {
@@ -195,7 +180,6 @@ export default function App() {
       vocabularyCache.current[category] = data;
       setVocabulary(data);
       setCurrentScreen(Screen.VOCABULARY);
-      preloadAudioList(data.map(v => v.kadazan));
     } catch (error: any) {
       alert("Slow internet connection. Please try again.");
     }
@@ -203,7 +187,7 @@ export default function App() {
 
   const handleStartSpelling = async () => {
     try {
-      const challenge = await getSpellingChallenge();
+      const challenge = await getSpellingChallenge(spellingChallenge?.kadazan);
       setSpellingChallenge(challenge);
       setUserSpelling('');
       setFeedbackMsg('');
@@ -311,6 +295,9 @@ export default function App() {
     if (userSpelling.trim().toLowerCase() === spellingChallenge.kadazan.toLowerCase()) {
       updateProgress({ totalScore: 20, spellingCompleted: 1 });
       setFeedbackMsg('KOPISIAN! (Excellent!) 🎉');
+      setTimeout(() => {
+        handleStartSpelling();
+      }, 1500);
     } else {
       setFeedbackMsg('Ada kooti! (Not quite!)');
     }

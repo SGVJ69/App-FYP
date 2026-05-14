@@ -13,7 +13,7 @@ const STATIC_VOCABULARY: Record<string, WordPair[]> = {
   'Animals': [
     { english: 'Dog', kadazan: 'Tasu', malay: 'Anjing', example: 'Agayo ilo tasu.', exampleEnglish: 'That dog is big.', exampleMalay: 'Anjing itu besar.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600' },
     { english: 'Cat', kadazan: 'Tingau', malay: 'Kucing', example: 'Tingau ku diti.', exampleEnglish: 'This is my cat.', exampleMalay: 'Ini kucing saya.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Bird', kadazan: 'Tombolog', malay: 'Burung', example: 'Tumulud ih tombolog.', exampleEnglish: 'The bird flies.', exampleMalay: 'Burung itu terbang.', category: 'Animals', imageUrl: 'https://loremflickr.com/cache/resized/65535_54465098328_823c26f9fa_z_600_400_nofilter.jpg' },
+    { english: 'Bird', kadazan: 'Tombolog', malay: 'Burung', example: 'Tumulud ih tombolog.', exampleEnglish: 'The bird flies.', exampleMalay: 'Burung itu terbang.', category: 'Animals', imageUrl: '/images/tombolog.jpg' },
     { english: 'Fish', kadazan: 'Sada', malay: 'Ikan', example: 'Aso sada id taang.', exampleEnglish: 'There is no fish in the market.', exampleMalay: 'Tiada ikan di pasar.', category: 'Animals', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Oreochromis-niloticus-Nairobi.JPG/960px-Oreochromis-niloticus-Nairobi.JPG' },
     { english: 'Chicken', kadazan: 'Manuk', malay: 'Ayam', example: 'Panggulon ku ih manuk.', exampleEnglish: 'I will hit the chicken.', exampleMalay: 'Saya akan pukul ayam itu.', category: 'Animals', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg' }
   ],
@@ -47,11 +47,11 @@ const STATIC_VOCABULARY: Record<string, WordPair[]> = {
     { english: 'Mountain', kadazan: 'Nuhu', malay: 'Gunung', example: 'Nuhu Kinabalu.', exampleEnglish: 'Mount Kinabalu.', exampleMalay: 'Gunung Kinabalu.', category: 'Nature', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Kinabalu_Sabah_Borneo_Kampong_Kundasang_panorama_2.jpg/960px-Kinabalu_Sabah_Borneo_Kampong_Kundasang_panorama_2.jpg' }
   ],
   'Family': [
-    { english: 'Father', kadazan: 'Ama', malay: 'Bapa', example: 'Mongoi zou id ama ku.', exampleEnglish: 'I am going to my father.', exampleMalay: 'Saya pergi ke bapa saya.', category: 'Family', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Father%27s_love_%28cropped%29.jpg/960px-Father%27s_love_%28cropped%29.jpg' },
-    { english: 'Mother', kadazan: 'Ina', malay: 'Ibu', example: 'Koupusan ku ih ina ku.', exampleEnglish: 'I love my mother.', exampleMalay: 'Saya sayang ibu saya.', category: 'Family', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Portrait_of_a_woman_holding_a_baby_%28I0024828%29.jpg/960px-Portrait_of_a_woman_holding_a_baby_%28I0024828%29.jpg' },
-    { english: 'Child', kadazan: 'Tanak', malay: 'Anak', example: 'Totoloo nodi ih tanak.', exampleEnglish: 'The child is crying.', exampleMalay: 'Anak itu menangis.', category: 'Family', imageUrl: 'https://loremflickr.com/cache/resized/65535_52954766931_78fd3c8323_b_600_400_nofilter.jpg' },
-    { english: 'Sibling', kadazan: 'Tobpinai', malay: 'Keluarga/Adik-beradik', example: 'Kotiop tobpinai ku diti.', exampleEnglish: 'My siblings are many.', exampleMalay: 'Adik-beradik saya ramai.', category: 'Family', imageUrl: 'https://loremflickr.com/cache/resized/65535_53067727704_65d83233f2_z_600_400_nofilter.jpg' },
-    { english: 'Grandparent', kadazan: 'Odu', malay: 'Nenek/Datuk', example: 'Minsoi odu id kampung.', exampleEnglish: 'Grandparent went to the village.', exampleMalay: 'Nenek ke kampung.', category: 'Family', imageUrl: 'https://loremflickr.com/cache/resized/65535_53142350376_5a7a73f753_c_600_400_nofilter.jpg' }
+    { english: 'Father', kadazan: 'Ama', malay: 'Bapa', example: 'Mongoi zou id ama ku.', exampleEnglish: 'I am going to my father.', exampleMalay: 'Saya pergi ke bapa saya.', category: 'Family', imageUrl: '/images/father.jpg' },
+    { english: 'Mother', kadazan: 'Ina', malay: 'Ibu', example: 'Koupusan ku ih ina ku.', exampleEnglish: 'I love my mother.', exampleMalay: 'Saya sayang ibu saya.', category: 'Family', imageUrl: '/images/mother.jpg' },
+    { english: 'Child', kadazan: 'Tanak', malay: 'Anak', example: 'Totoloo nodi ih tanak.', exampleEnglish: 'The child is crying.', exampleMalay: 'Anak itu menangis.', category: 'Family', imageUrl: '/images/child.jpg' },
+    { english: 'Sibling', kadazan: 'Tobpinai', malay: 'Keluarga/Adik-beradik', example: 'Kotiop tobpinai ku diti.', exampleEnglish: 'My siblings are many.', exampleMalay: 'Adik-beradik saya ramai.', category: 'Family', imageUrl: '/images/siblings.jpg' },
+    { english: 'Grandparent', kadazan: 'Odu', malay: 'Nenek/Datuk', example: 'Minsoi odu id kampung.', exampleEnglish: 'Grandparent went to the village.', exampleMalay: 'Nenek ke kampung.', category: 'Family', imageUrl: '/images/grandparents.jpg' }
   ]
 };
 
@@ -118,15 +118,6 @@ function getGenAI() {
   return ai;
 }
 
-export const preloadAudioList = async (texts: string[]) => {
-  for (const text of texts) {
-    if (!audioCache.has(text) && !fetchPromiseCache.has(text)) {
-      generateSpeech(text).catch(() => {});
-      await new Promise(r => setTimeout(r, 800)); // Stagger requests
-    }
-  }
-};
-
 const fetchPromiseCache = new Map<string, Promise<string | undefined>>();
 
 export const generateSpeech = async (text: string): Promise<string | undefined> => {
@@ -175,19 +166,16 @@ export const generateSpeech = async (text: string): Promise<string | undefined> 
   return promise;
 };
 
-export const preloadAllAudio = async () => {
-  const allTexts = [...Object.values(STATIC_VOCABULARY).flat().map(v => v.kadazan), ...STATIC_SENTENCES.map(s => s.kadazan)];
-  preloadAudioList(allTexts);
-};
-
 export const getVocabulary = async (category: string): Promise<WordPair[]> => {
   return Promise.resolve(STATIC_VOCABULARY[category] || STATIC_VOCABULARY['Animals']);
 };
 
-export const getSpellingChallenge = async (): Promise<SpellingChallenge> => {
+export const getSpellingChallenge = async (excludeWord?: string): Promise<SpellingChallenge> => {
   const categories = Object.keys(STATIC_VOCABULARY).filter(cat => cat !== 'Phrases');
   const allWords = categories.flatMap(c => STATIC_VOCABULARY[c]);
-  const word = allWords[Math.floor(Math.random() * allWords.length)];
+  let filteredWords = excludeWord ? allWords.filter(w => w.kadazan !== excludeWord) : allWords;
+  if (filteredWords.length === 0) filteredWords = allWords; // fallback
+  const word = filteredWords[Math.floor(Math.random() * filteredWords.length)];
   return Promise.resolve({
     english: word.english,
     kadazan: word.kadazan,
