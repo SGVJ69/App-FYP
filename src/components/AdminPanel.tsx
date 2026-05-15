@@ -45,6 +45,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
       const usersList: UserData[] = [];
       snapshot.forEach(doc => {
         const data = doc.data();
+        if (data.isDeleted) return;
         usersList.push({
           id: doc.id,
           email: data.email || 'No email',
@@ -95,7 +96,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this user data?')) return;
     try {
-      await deleteDoc(doc(db, 'users', id));
+      await updateDoc(doc(db, 'users', id), { isDeleted: true });
       fetchUsers();
     } catch (e) {
       alert('Error deleting user');

@@ -159,6 +159,12 @@ export default function App() {
           
           if (docSnap.exists()) {
             const data = docSnap.data() as UserProgress;
+            
+            if ((data as any).isDeleted) {
+              await signOut(auth);
+              return;
+            }
+            
             let newStreak = data.streak || 0;
             const updatedBadges = data.badges || [];
             
