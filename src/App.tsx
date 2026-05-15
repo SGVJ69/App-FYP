@@ -207,6 +207,18 @@ export default function App() {
         if (currentScreen === Screen.LOGIN) {
           setCurrentScreen(Screen.HOME);
         }
+      } else {
+        setUserProgress({ 
+          totalScore: 0, 
+          quizzesCompleted: 0, 
+          spellingCompleted: 0, 
+          sentencesCompleted: 0, 
+          memoryCompleted: 0,
+          streak: 0, 
+          lastActiveDate: '', 
+          badges: [] 
+        });
+        setCurrentScreen(Screen.LOGIN);
       }
     });
     
