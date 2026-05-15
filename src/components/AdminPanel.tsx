@@ -13,6 +13,12 @@ interface UserData {
   email: string;
   role: string;
   totalScore: number;
+  streak: number;
+  badgesCount: number;
+  quizzesCompleted: number;
+  spellingCompleted: number;
+  sentencesCompleted: number;
+  memoryCompleted: number;
 }
 
 type AdminTab = 'users' | 'words' | 'quizzes' | 'memory';
@@ -44,6 +50,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
           email: data.email || 'No email',
           role: data.role || 'user',
           totalScore: data.totalScore || 0,
+          streak: data.streak || 0,
+          badgesCount: data.badges ? data.badges.length : 0,
+          quizzesCompleted: data.quizzesCompleted || 0,
+          spellingCompleted: data.spellingCompleted || 0,
+          sentencesCompleted: data.sentencesCompleted || 0,
+          memoryCompleted: data.memoryCompleted || 0,
         });
       });
       setUsers(usersList);
@@ -325,7 +337,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     <tr className="border-b-2 border-slate-200">
                       <th className="p-4 font-black uppercase text-xs text-slate-500 bg-slate-50">Email</th>
                       <th className="p-4 font-black uppercase text-xs text-slate-500 bg-slate-50">Role</th>
-                      <th className="p-4 font-black uppercase text-xs text-slate-500 bg-slate-50">Total Score</th>
+                      <th className="p-4 font-black uppercase text-xs text-slate-500 bg-slate-50">Score</th>
+                      <th className="p-4 font-black uppercase text-xs text-slate-500 bg-slate-50">Progress</th>
                       <th className="p-4 font-black uppercase text-xs text-slate-500 bg-slate-50 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -339,25 +352,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                           </span>
                         </td>
                         <td className="p-4 font-mono font-bold text-slate-600">{u.totalScore}</td>
-                        <td className="p-4 text-right flex justify-end gap-2">
-                           <button 
-                              onClick={() => setEditUser(u)}
-                              className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 flex items-center justify-center transition"
-                           >
-                             <i className="fas fa-edit"></i>
-                           </button>
-                           <button 
-                              onClick={() => handleDelete(u.id)}
-                              className="w-8 h-8 rounded-full bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center transition"
-                           >
-                             <i className="fas fa-trash"></i>
-                           </button>
+                        <td className="p-4">
+                          <div className="grid grid-cols-2 gap-1 text-xs">
+                            <span className="text-slate-500"><i className="fas fa-fire text-orange-500 w-4"></i> {u.streak}</span>
+                            <span className="text-slate-500"><i className="fas fa-award text-amber-500 w-4"></i> {u.badgesCount}</span>
+                            <span className="text-slate-500"><i className="fas fa-question-circle text-blue-500 w-4"></i> {u.quizzesCompleted}</span>
+                            <span className="text-slate-500"><i className="fas fa-keyboard text-emerald-500 w-4"></i> {u.spellingCompleted}</span>
+                            <span className="text-slate-500"><i className="fas fa-pen text-indigo-500 w-4"></i> {u.sentencesCompleted}</span>
+                            <span className="text-slate-500"><i className="fas fa-gamepad text-purple-500 w-4"></i> {u.memoryCompleted}</span>
+                          </div>
+                        </td>
+                        <td className="p-4 text-right flex flex-col justify-end gap-2 items-end">
+                           <div className="flex gap-2">
+                             <button 
+                                onClick={() => setEditUser(u)}
+                                className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 flex items-center justify-center transition"
+                             >
+                               <i className="fas fa-edit"></i>
+                             </button>
+                             <button 
+                                onClick={() => handleDelete(u.id)}
+                                className="w-8 h-8 rounded-full bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center transition"
+                             >
+                               <i className="fas fa-trash"></i>
+                             </button>
+                           </div>
                         </td>
                       </tr>
                     ))}
                     {users.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="p-8 text-center text-slate-500 font-bold">No users found.</td>
+                        <td colSpan={5} className="p-8 text-center text-slate-500 font-bold">No users found.</td>
                       </tr>
                     )}
                   </tbody>
