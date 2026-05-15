@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Screen, WordPair, QuizQuestion, SpellingChallenge, UserProgress } from './types';
 import { Layout } from './components/Layout';
+import { AdminPanel } from './components/AdminPanel';
 import { auth, db } from './firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -171,13 +172,31 @@ export default function App() {
               }
             }
             
-            const updatedData = { ...data, streak: newStreak, lastActiveDate: today, badges: updatedBadges };
+            const updatedData = { 
+              ...data, 
+              streak: newStreak, 
+              lastActiveDate: today, 
+              badges: updatedBadges,
+              role: data.role || (currentUser.email === 'admin@kadazan.com' ? 'admin' : 'user'),
+              email: data.email || currentUser.email || ''
+            };
             setUserProgress(updatedData);
-            if (updatedData.lastActiveDate !== data.lastActiveDate) {
+            if (updatedData.lastActiveDate !== data.lastActiveDate || !data.role) {
                await setDoc(progressRef, updatedData, { merge: true });
             }
           } else {
-            const initialProgress: UserProgress = { totalScore: 0, quizzesCompleted: 0, spellingCompleted: 0, sentencesCompleted: 0, streak: 1, lastActiveDate: today, badges: [] };
+            const initialProgress: UserProgress = { 
+              totalScore: 0, 
+              quizzesCompleted: 0, 
+              spellingCompleted: 0, 
+              sentencesCompleted: 0, 
+              memoryCompleted: 0,
+              streak: 1, 
+              lastActiveDate: today, 
+              badges: [],
+              role: currentUser.email === 'admin@kadazan.com' ? 'admin' : 'user',
+              email: currentUser.email || ''
+            };
             await setDoc(progressRef, initialProgress);
             setUserProgress(initialProgress);
           }
@@ -644,8 +663,22 @@ export default function App() {
                  <span>OUR HERITAGE</span>
                  <i className="fas fa-book-open text-red-600 group-hover:scale-110 transition-transform"></i>
                </button>
+               {userProgress?.role === 'admin' && (
+                 <button 
+                   onClick={() => setCurrentScreen(Screen.ADMIN)}
+                   className="w-full py-5 bg-amber-400 text-black border-4 border-black rounded-[2rem] font-black text-xl shadow-md hover:bg-amber-500 transition-all active:scale-95 flex items-center justify-center gap-4 group"
+                 >
+                   <span>ADMIN PANEL</span>
+                   <i className="fas fa-users-cog text-black group-hover:scale-110 transition-transform"></i>
+                 </button>
+               )}
              </div>
           </div>
+        );
+
+      case Screen.ADMIN:
+        return (
+          <AdminPanel onBack={() => setCurrentScreen(Screen.HOME)} />
         );
 
       case Screen.DASHBOARD:
@@ -1311,6 +1344,19 @@ export default function App() {
         return null;
     }
   };
+
+  if (currentScreen === Screen.ADMIN) {
+    if (userProgress?.role !== 'admin') {
+      return (
+        <div className="flex h-screen items-center justify-center bg-slate-100 flex-col gap-4">
+           <h1 className="text-3xl font-black text-red-600">Access Denied</h1>
+           <p className="font-bold text-slate-500">You must be an admin to view this page.</p>
+           <button onClick={() => setCurrentScreen(Screen.HOME)} className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold mt-4">Go Home</button>
+        </div>
+      );
+    }
+    return <AdminPanel onBack={() => setCurrentScreen(Screen.HOME)} />;
+  }
 
   return (
     <Layout currentScreen={currentScreen} onNavigate={setCurrentScreen} title={currentScreen === Screen.HOME || currentScreen === Screen.LOGIN ? undefined : currentScreen.toString()}>

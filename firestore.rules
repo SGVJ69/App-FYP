@@ -7,22 +7,21 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Pattern 1: Data stored by user ID as the document ID (e.g., /users/{userId})
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'admin@kadazan.com';
+    }
+
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
       
       // Allow access to all subcollections under the user's document
       match /{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if request.auth != null && (request.auth.uid == userId || isAdmin());
       }
     }
-
-    // Pattern 2: (Template) Data stored in a generic collection but having an 'ownerId' or 'userId' field
-    // match /someCollection/{docId} {
-    //   // For reading/updating/deleting, check existing document's owner
-    //   allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
-    //   // For creating, check the incoming document's owner matches the requester
-    //   allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-    // }
+    match /content/{documentId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
   }
 }

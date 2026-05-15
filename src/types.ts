@@ -12,7 +12,8 @@ export enum Screen {
   ABOUT = 'ABOUT',
   PROGRESS = 'PROGRESS',
   MEMORY_GAME = 'MEMORY_GAME',
-  MEMORY_THEMES = 'MEMORY_THEMES'
+  MEMORY_THEMES = 'MEMORY_THEMES',
+  ADMIN = 'ADMIN'
 }
 
 export interface UserProgress {
@@ -24,6 +25,8 @@ export interface UserProgress {
   streak: number;
   lastActiveDate: string | null;
   badges: string[];
+  role?: 'user' | 'admin';
+  email?: string;
 }
 
 export interface WordPair {

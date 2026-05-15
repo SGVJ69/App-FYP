@@ -1,6 +1,8 @@
 
 import { WordPair, QuizQuestion, SpellingChallenge } from "../types";
 import { GoogleGenAI, Modality } from "@google/genai";
+import { db } from '../firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export interface SentenceChallenge {
   english: string;
@@ -9,7 +11,7 @@ export interface SentenceChallenge {
   distractors: string[];
 }
 
-const STATIC_VOCABULARY: Record<string, WordPair[]> = {
+export const STATIC_VOCABULARY: Record<string, WordPair[]> = {
   'Animals': [
     { english: 'Dog', kadazan: 'Tasu', malay: 'Anjing', example: 'Agayo ilo tasu.', exampleEnglish: 'That dog is big.', exampleMalay: 'Anjing itu besar.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600' },
     { english: 'Cat', kadazan: 'Tingau', malay: 'Kucing', example: 'Tingau ku diti.', exampleEnglish: 'This is my cat.', exampleMalay: 'Ini kucing saya.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=600' },
@@ -55,7 +57,7 @@ const STATIC_VOCABULARY: Record<string, WordPair[]> = {
   ]
 };
 
-const STATIC_QUIZZES: Record<string, QuizQuestion[]> = {
+export const STATIC_QUIZZES: Record<string, QuizQuestion[]> = {
   'Animals': [
     { question: 'What is "Dog" in Kadazan?', options: ['Tingau', 'Tasu', 'Manuk', 'Kuda'], correctAnswer: 'Tasu', explanation: 'Tasu means Dog (Anjing).' },
     { question: 'What is "Cat" in Kadazan?', options: ['Tingau', 'Tasu', 'Sada', 'Kuda'], correctAnswer: 'Tingau', explanation: 'Tingau means Cat (Kucing).' },
@@ -94,7 +96,7 @@ const STATIC_QUIZZES: Record<string, QuizQuestion[]> = {
   ]
 };
 
-const STATIC_SENTENCES: SentenceChallenge[] = [
+export const STATIC_SENTENCES: SentenceChallenge[] = [
   { english: 'Thank you very much.', kadazan: 'Kotohuadan kio.', malay: 'Terima kasih banyak-banyak.', distractors: ['Tasu', 'Waig', 'Ama'] },
   { english: 'I have four dogs.', kadazan: 'Apat tasu ku.', malay: 'Saya ada empat anjing.', distractors: ['Tingau', 'Hada', 'Vuhan'] },
   { english: 'Penampang River is big.', kadazan: 'Agayo Bawang Penampang.', malay: 'Sungai Penampang besar.', distractors: ['Puun', 'Tadau', 'Tohu'] },
@@ -167,25 +169,68 @@ export const generateSpeech = async (text: string): Promise<string | undefined> 
 };
 
 export const getVocabulary = async (category: string): Promise<WordPair[]> => {
-  return Promise.resolve(STATIC_VOCABULARY[category] || STATIC_VOCABULARY['Animals']);
+  try {
+     const docRef = doc(db, 'content', 'vocabulary');
+     const docSnap = await getDoc(docRef);
+     if (docSnap.exists()) {
+       const data = docSnap.data();
+       if (data[category]) {
+          return data[category];
+       }
+     }
+  } catch(e) {
+     console.error('Error fetching vocabulary:', e);
+  }
+  return STATIC_VOCABULARY[category] || STATIC_VOCABULARY['Animals'];
 };
 
 export const getSpellingChallenge = async (excludeWord?: string): Promise<SpellingChallenge> => {
   const categories = Object.keys(STATIC_VOCABULARY).filter(cat => cat !== 'Phrases');
-  const allWords = categories.flatMap(c => STATIC_VOCABULARY[c]);
+  
+  // Collect from Firestore if available
+  let allWords: WordPair[] = [];
+  try {
+    const docRef = doc(db, 'content', 'vocabulary');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      categories.forEach(c => {
+         if (data[c]) allWords.push(...data[c]);
+      });
+    }
+  } catch (e) {
+    console.error('Error fetching spelling words:', e);
+  }
+
+  if (allWords.length === 0) {
+     allWords = categories.flatMap(c => STATIC_VOCABULARY[c]);
+  }
+
   let filteredWords = excludeWord ? allWords.filter(w => w.kadazan !== excludeWord) : allWords;
   if (filteredWords.length === 0) filteredWords = allWords; // fallback
   const word = filteredWords[Math.floor(Math.random() * filteredWords.length)];
-  return Promise.resolve({
+  return {
     english: word.english,
     kadazan: word.kadazan,
     hint: `Translation: ${word.malay}`, 
     imageUrl: word.imageUrl
-  });
+  };
 };
 
 export const generateQuiz = async (category: string): Promise<QuizQuestion[]> => {
-  return Promise.resolve(STATIC_QUIZZES[category] || STATIC_QUIZZES['Animals']);
+  try {
+     const docRef = doc(db, 'content', 'quizzes');
+     const docSnap = await getDoc(docRef);
+     if (docSnap.exists()) {
+       const data = docSnap.data();
+       if (data[category]) {
+          return data[category];
+       }
+     }
+  } catch(e) {
+      console.error('Error fetching quizzes:', e);
+  }
+  return STATIC_QUIZZES[category] || STATIC_QUIZZES['Animals'];
 };
 
 export const checkSentence = async (english: string, userKadazan: string): Promise<{ correct: boolean; feedback: string; correction?: string }> => {
