@@ -243,25 +243,25 @@ function isVoiced(type: 'vowel' | 'nasal' | 'fricative' | 'plosive' | 'silence',
 }
 
 function speakSynthesizedText(segments: PhoneticSegment[], ctx: AudioContext): number {
-  const now = ctx.currentTime + 0.03;
+  const now = ctx.currentTime + 0.05;
   
   // Create fundamental glottal voice oscillator source
   const osc = ctx.createOscillator();
   const oscLPF = ctx.createBiquadFilter();
   osc.type = 'triangle';
   oscLPF.type = 'lowpass';
-  oscLPF.frequency.value = 1600; // soft roll-off for natural sounding pulse wave
+  oscLPF.frequency.setValueAtTime(1200, ctx.currentTime); // soft roll-off for natural sounding pulse wave
   osc.connect(oscLPF);
 
-  // Subtle natural vocal pitch vibrato (6.2Hz vibrato)
+  // Subtle natural vocal pitch vibrato (6.0Hz gentle vibrato)
   const vibratoOsc = ctx.createOscillator();
   const vibratoGain = ctx.createGain();
-  vibratoOsc.frequency.value = 6.2;
-  vibratoGain.gain.value = 1.5;
+  vibratoOsc.frequency.value = 6.0;
+  vibratoGain.gain.value = 2.0;
   vibratoOsc.connect(vibratoGain);
   vibratoGain.connect(osc.frequency);
 
-  // Master volume gating for voicing node
+  // Master volume gating for voicing node - fade in gently from absolute silence
   const voiceGain = ctx.createGain();
   voiceGain.gain.setValueAtTime(0.001, ctx.currentTime);
   oscLPF.connect(voiceGain);
@@ -275,13 +275,19 @@ function speakSynthesizedText(segments: PhoneticSegment[], ctx: AudioContext): n
   formant2.type = 'bandpass';
   formant3.type = 'bandpass';
 
-  formant1.Q.value = 9;
-  formant2.Q.value = 9;
-  formant3.Q.value = 9;
+  // Slightly lower resonance Q to prevent synthetic ringing/feedback popping
+  formant1.Q.value = 4.5;
+  formant2.Q.value = 4.5;
+  formant3.Q.value = 4.5;
 
   const gainF1 = ctx.createGain();
   const gainF2 = ctx.createGain();
   const gainF3 = ctx.createGain();
+
+  // Initialize formants gains to gentle values
+  gainF1.gain.setValueAtTime(0.01, ctx.currentTime);
+  gainF2.gain.setValueAtTime(0.01, ctx.currentTime);
+  gainF3.gain.setValueAtTime(0.01, ctx.currentTime);
 
   voiceGain.connect(formant1);
   voiceGain.connect(formant2);
@@ -291,16 +297,16 @@ function speakSynthesizedText(segments: PhoneticSegment[], ctx: AudioContext): n
   formant2.connect(gainF2);
   formant3.connect(gainF3);
 
-  // Summarize main outputs
+  // Master output leveler
   const masterGain = ctx.createGain();
-  masterGain.gain.setValueAtTime(0.35, ctx.currentTime);
+  masterGain.gain.setValueAtTime(0.28, ctx.currentTime);
   masterGain.connect(ctx.destination);
 
   gainF1.connect(masterGain);
   gainF2.connect(masterGain);
   gainF3.connect(masterGain);
 
-  // Create white noise source buffers for consonant sounds
+  // Create white noise source buffers for fricative and plosive sounds
   const noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
   const noiseData = noiseBuf.getChannelData(0);
   for (let i = 0; i < noiseBuf.length; i++) {
@@ -313,8 +319,8 @@ function speakSynthesizedText(segments: PhoneticSegment[], ctx: AudioContext): n
 
   const noiseFilter = ctx.createBiquadFilter();
   noiseFilter.type = 'bandpass';
-  noiseFilter.frequency.setValueAtTime(4500, ctx.currentTime);
-  noiseFilter.Q.value = 1.2;
+  noiseFilter.frequency.setValueAtTime(3500, ctx.currentTime);
+  noiseFilter.Q.value = 1.0;
 
   const noiseGain = ctx.createGain();
   noiseGain.gain.setValueAtTime(0.001, ctx.currentTime);
@@ -324,7 +330,7 @@ function speakSynthesizedText(segments: PhoneticSegment[], ctx: AudioContext): n
   noiseGain.connect(masterGain);
 
   let t = now;
-  const basePitch = 145; // human voice register base frequency
+  const basePitch = 140; // Male-register baseline pitch contour
   const N = segments.length;
 
   const FORMANT_MAP: Record<string, { f1: number, g1: number, f2: number, g2: number, f3: number, g3: number }> = {
@@ -340,124 +346,185 @@ function speakSynthesizedText(segments: PhoneticSegment[], ctx: AudioContext): n
     default: { f1: 550, g1: 0.6, f2: 1500, g2: 0.6, f3: 2500, g3: 0.3 }
   };
 
-  // Iteratively automate all audio parameter trajectories
+  // Trajectory Automation Loop (using strictly continuous mathematical ramps to avoid popping artifact "clicks")
   for (let idx = 0; idx < N; idx++) {
     const seg = segments[idx];
     const relativeIdx = idx / N;
-    // Gentle natural intonation curve across the words
-    const intonation = Math.sin(relativeIdx * Math.PI) * 16;
-    const declination = - (relativeIdx * 10);
+    const transitionTime = 0.035; // smooth pitch and formant transition rise constant
+    
+    // Intoned micro-pitch transitions across wording
+    const intonation = Math.sin(relativeIdx * Math.PI) * 12;
+    const declination = - (relativeIdx * 8);
     const pitch = basePitch + intonation + declination;
 
-    osc.frequency.setValueAtTime(pitch, t);
+    osc.frequency.linearRampToValueAtTime(pitch, t + transitionTime);
 
     const currentVoiced = isVoiced(seg.type, seg.char);
-    const nextVoiced = idx + 1 < N ? isVoiced(segments[idx + 1].type, segments[idx + 1].char) : false;
     const targetVol = currentVoiced
-      ? (seg.type === 'vowel' ? 0.3 : seg.type === 'nasal' ? 0.22 : 0.08)
+      ? (seg.type === 'vowel' ? 0.26 : seg.type === 'nasal' ? 0.20 : 0.08)
       : 0.001;
 
-    // Transition voice gain to this segment's target level smoothly
-    voiceGain.gain.linearRampToValueAtTime(targetVol, t + 0.02);
+    // Smoothly glide the voice glottal carrier gain
+    voiceGain.gain.linearRampToValueAtTime(targetVol, t + transitionTime);
 
     if (currentVoiced) {
       const pr = seg.type === 'vowel'
         ? (FORMANT_MAP[seg.char] || FORMANT_MAP.default)
-        : { f1: 240, g1: 0.28, f2: 800, g2: 0.1, f3: 1500, g3: 0.04 }; // Nasal formants
+        : { f1: 240, g1: 0.28, f2: 800, g2: 0.1, f3: 1500, g3: 0.04 }; // Soft nasal hum formants
 
-      formant1.frequency.linearRampToValueAtTime(pr.f1, t + 0.035);
-      formant2.frequency.linearRampToValueAtTime(pr.f2, t + 0.035);
-      formant3.frequency.linearRampToValueAtTime(pr.f3, t + 0.035);
+      // Smoothly transition formant active frequencies & levels
+      formant1.frequency.linearRampToValueAtTime(pr.f1, t + transitionTime);
+      formant2.frequency.linearRampToValueAtTime(pr.f2, t + transitionTime);
+      formant3.frequency.linearRampToValueAtTime(pr.f3, t + transitionTime);
       
-      gainF1.gain.linearRampToValueAtTime(pr.g1 * 0.3, t + 0.035);
-      gainF2.gain.linearRampToValueAtTime(pr.g2 * 0.3, t + 0.035);
-      gainF3.gain.linearRampToValueAtTime(pr.g3 * 0.3, t + 0.035);
+      gainF1.gain.linearRampToValueAtTime(pr.g1 * 0.28, t + transitionTime);
+      gainF2.gain.linearRampToValueAtTime(pr.g2 * 0.28, t + transitionTime);
+      gainF3.gain.linearRampToValueAtTime(pr.g3 * 0.28, t + transitionTime);
 
-      // Transition voice carrier gain smoothly
-      if (nextVoiced) {
-        // Keep active and ready for soft crossfade/bend to avoid beatboxing clicks
-        voiceGain.gain.setValueAtTime(targetVol, t + seg.duration);
-      } else {
-        // Fade out nicely towards the end of voicing
-        voiceGain.gain.setValueAtTime(targetVol, t + seg.duration - 0.015);
-        voiceGain.gain.linearRampToValueAtTime(0.001, t + seg.duration);
-      }
-      noiseGain.gain.linearRampToValueAtTime(0.001, t + 0.015);
+      // Fade out high-pitch sibilance noise
+      noiseGain.gain.linearRampToValueAtTime(0.001, t + transitionTime);
     } 
     else if (seg.type === 'fricative') {
       let fFreq = 3000;
       let fQ = 1.0;
-      let fVol = 0.04;
-      if (seg.char === 's') { fFreq = 6500; fQ = 1.8; fVol = 0.075; }
-      else if (seg.char === 'h') { fFreq = 1600; fQ = 0.7; fVol = 0.045; }
-      else if (seg.char === 'v' || seg.char === 'z') { fFreq = 3200; fQ = 1.2; fVol = 0.035; }
+      let fVol = 0.05;
+      if (seg.char === 's') { fFreq = 6200; fQ = 1.5; fVol = 0.07; }
+      else if (seg.char === 'h') { fFreq = 1500; fQ = 0.7; fVol = 0.04; }
+      else if (seg.char === 'v' || seg.char === 'z') { fFreq = 3000; fQ = 1.1; fVol = 0.035; }
 
+      // Smoothly pan frication filters & volume
       noiseFilter.frequency.setValueAtTime(fFreq, t);
       noiseFilter.Q.setValueAtTime(fQ, t);
-
-      noiseGain.gain.linearRampToValueAtTime(fVol, t + 0.015);
-      noiseGain.gain.setValueAtTime(fVol, t + seg.duration - 0.015);
-      noiseGain.gain.linearRampToValueAtTime(0.001, t + seg.duration);
+      noiseGain.gain.linearRampToValueAtTime(fVol, t + transitionTime);
 
       if (seg.char === 'v' || seg.char === 'z') {
-        const vVol = 0.07;
-        voiceGain.gain.linearRampToValueAtTime(vVol, t + 0.012);
-        if (nextVoiced) {
-          voiceGain.gain.setValueAtTime(vVol, t + seg.duration);
-        } else {
-          voiceGain.gain.setValueAtTime(vVol, t + seg.duration - 0.015);
-          voiceGain.gain.linearRampToValueAtTime(0.001, t + seg.duration);
-        }
+        const vVol = 0.06;
+        voiceGain.gain.linearRampToValueAtTime(vVol, t + transitionTime);
       } else {
-        voiceGain.gain.linearRampToValueAtTime(0.001, t + 0.015);
+        voiceGain.gain.linearRampToValueAtTime(0.001, t + transitionTime);
       }
     }
     else if (seg.type === 'plosive') {
       let pFreq = 2000;
-      let pVol = 0.08;
-      if (['p', 'b'].includes(seg.char)) { pFreq = 600; pVol = 0.055; }
-      else if (['t', 'd'].includes(seg.char)) { pFreq = 5400; pVol = 0.065; }
+      let pVol = 0.07;
+      if (['p', 'b'].includes(seg.char)) { pFreq = 580; pVol = 0.05; }
+      else if (['t', 'd'].includes(seg.char)) { pFreq = 5000; pVol = 0.06; }
 
-      // Gated silent gap before release burst
-      voiceGain.gain.setValueAtTime(0.001, t);
-      noiseGain.gain.setValueAtTime(0.001, t);
+      // Soft gated transition before release burst rather than instant sharp zeroing
+      voiceGain.gain.linearRampToValueAtTime(0.001, t + 0.01);
+      noiseGain.gain.linearRampToValueAtTime(0.001, t + 0.01);
 
-      const burstStart = t + 0.02;
+      // Burst build contour
+      const burstStart = t + 0.015;
       noiseFilter.frequency.setValueAtTime(pFreq, burstStart);
-      noiseGain.gain.setValueAtTime(pVol, burstStart);
+      noiseGain.gain.setValueAtTime(0.001, burstStart);
+      noiseGain.gain.linearRampToValueAtTime(pVol, burstStart + 0.01);
       noiseGain.gain.exponentialRampToValueAtTime(0.001, t + seg.duration);
 
       if (['b', 'd', 'g'].includes(seg.char)) {
-        const bVol = 0.07;
-        voiceGain.gain.setValueAtTime(bVol, burstStart);
-        if (nextVoiced) {
-          voiceGain.gain.setValueAtTime(bVol, t + seg.duration);
-        } else {
-          voiceGain.gain.exponentialRampToValueAtTime(0.001, t + seg.duration);
-        }
+        const bVol = 0.06;
+        voiceGain.gain.setValueAtTime(0.001, burstStart);
+        voiceGain.gain.linearRampToValueAtTime(bVol, burstStart + 0.01);
+        voiceGain.gain.exponentialRampToValueAtTime(0.001, t + seg.duration);
       }
     }
     else {
-      // General silence / spacing gap
-      voiceGain.gain.linearRampToValueAtTime(0.001, t + 0.015);
-      noiseGain.gain.linearRampToValueAtTime(0.001, t + 0.015);
+      // Smoothly drop to comfort silence
+      voiceGain.gain.linearRampToValueAtTime(0.001, t + transitionTime);
+      noiseGain.gain.linearRampToValueAtTime(0.001, t + transitionTime);
     }
 
     t += seg.duration;
   }
 
+  // Safety volume release at the end of the text
+  voiceGain.gain.linearRampToValueAtTime(0.001, t + 0.03);
+  noiseGain.gain.linearRampToValueAtTime(0.001, t + 0.03);
+
   osc.start(ctx.currentTime);
   vibratoOsc.start(ctx.currentTime);
   noiseSource.start(ctx.currentTime);
 
-  osc.stop(t + 0.1);
-  vibratoOsc.stop(t + 0.1);
-  noiseSource.stop(t + 0.1);
+  const cleanupTime = t + 0.2;
+  osc.stop(cleanupTime);
+  vibratoOsc.stop(cleanupTime);
+  noiseSource.stop(cleanupTime);
 
-  return t - ctx.currentTime;
+  return cleanupTime - ctx.currentTime;
 }
 
 export function playOfflineVoice(text: string): Promise<void> {
+  return new Promise((resolve) => {
+    let completed = false;
+    const safeResolve = () => {
+      if (!completed) {
+        completed = true;
+        resolve();
+      }
+    };
+
+    // 1. Setup Watchdog Safety timer (ensures UI buttons never lock if TTS fails or hangs on certain Android devices)
+    const safetyLimit = Math.max(2500, text.length * 150);
+    const watchdog = setTimeout(() => {
+      console.warn("speechSynthesis/audiocontext watchdog completed speech via timeout bypass.");
+      safeResolve();
+    }, safetyLimit);
+
+    // 2. PRIMARY: Try Browser Native SpeechSynthesis (works 100% offline in Chrome and Android WebViews)
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      try {
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        // Find best local high-quality standard Malay / Indonesian phonetic voices for flawless indigenous pronunciations
+        const voices = window.speechSynthesis.getVoices();
+        const localVoice = voices.find(v => {
+          const l = v.lang.toLowerCase().replace(/[-_]/g, '');
+          return l.startsWith('ms') || l.startsWith('id') || v.name.toLowerCase().includes('malay') || v.name.toLowerCase().includes('indonesia');
+        });
+
+        if (localVoice) {
+          utterance.voice = localVoice;
+          utterance.lang = localVoice.lang;
+        } else {
+          utterance.lang = 'ms-MY';
+        }
+
+        utterance.rate = 0.82;   // elegant clear lesson pace
+        utterance.pitch = 1.05;  // friendly warm pitch
+        
+        utterance.onend = () => {
+          clearTimeout(watchdog);
+          (window as any)._activeUtterance = null;
+          safeResolve();
+        };
+
+        utterance.onerror = (e) => {
+          console.warn("Android native SpeechSynthesis failed or silent. Running Web Audio synthesis fallback.", e);
+          clearTimeout(watchdog);
+          (window as any)._activeUtterance = null;
+          playWebAudioSynthesisFallback(text).then(safeResolve);
+        };
+
+        // ANDROID CORE WEBVIEW BUG FIX: Store reference to active utterance on window to prevent WebView garbage collection
+        (window as any)._activeUtterance = utterance;
+        
+        window.speechSynthesis.speak(utterance);
+        return;
+      } catch (err) {
+        console.warn("Error starting native SpeechSynthesis, utilizing Web Audio synthesizer fallback.", err);
+      }
+    }
+
+    // 3. FALLBACK: Fallback to the ultra-smooth click-free Web Audio Synthesizer
+    clearTimeout(watchdog);
+    playWebAudioSynthesisFallback(text).then(safeResolve);
+  });
+}
+
+// Separate helper for Web Audio synthesizer fallback
+function playWebAudioSynthesisFallback(text: string): Promise<void> {
   return new Promise((resolve) => {
     try {
       primeAudioContext();
@@ -471,32 +538,11 @@ export function playOfflineVoice(text: string): Promise<void> {
         return;
       }
 
-      const totalDuration = speakSynthesizedText(segments, ttsAudioCtx);
-      
-      // Resolve once pronunciation completes
-      setTimeout(() => {
-        resolve();
-      }, totalDuration * 1000 + 100);
-
+      const duration = speakSynthesizedText(segments, ttsAudioCtx);
+      setTimeout(resolve, duration * 1000);
     } catch (err) {
-      console.warn("Client voice tract synthesizer failed, trying speechSynthesis fallback:", err);
-      
-      if (typeof window === 'undefined' || !window.speechSynthesis) {
-        resolve();
-        return;
-      }
-      try {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'ms-MY';
-        utterance.rate = 0.85;
-        utterance.onend = () => resolve();
-        utterance.onerror = () => resolve();
-        window.speechSynthesis.speak(utterance);
-      } catch (innerErr) {
-        console.error("speechSynthesis fallback failed as well:", innerErr);
-        resolve();
-      }
+      console.error("Web Audio Synthesizer fallback failed:", err);
+      resolve();
     }
   });
 }
