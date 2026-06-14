@@ -12,6 +12,17 @@ async function startServer() {
 
   app.use(express.json());
 
+  // CORS Middleware to allow requests from the Android WebView / APK (file:// or localhost origin)
+  app.use((req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "X-Requested-With,Content-Type,Authorization");
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+
   // API Route: Translation Proxy
   app.post("/api/translate", async (req, res) => {
     try {

@@ -175,6 +175,16 @@ const getApiBaseUrl = (): string => {
   if (envUrl) {
     return envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
   }
+  // Auto-detect Android WebView/APK/Cordova offline environment and point back to the hosted target server
+  if (typeof window !== 'undefined') {
+    const isLocalFile = window.location.protocol === 'file:';
+    const isLocalHost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    
+    // Fallback if accessed inside native webviews or non-standard origin environments
+    if (isLocalFile || isLocalHost || !window.location.hostname.includes('.run.app')) {
+      return 'https://ais-pre-fgzmvdaplf3wzjot7ycfpj-354233764796.asia-southeast1.run.app';
+    }
+  }
   return '';
 };
 

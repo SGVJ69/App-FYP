@@ -18,7 +18,7 @@ import {
   SentenceChallenge,
   generateSpeech
 } from './services/geminiService';
-import { playTTS } from './services/audioService';
+import { playTTS, playOfflineVoice } from './services/audioService';
 
 const playSound = (type: 'correct' | 'wrong' | 'click') => {
    const audio = new Audio(
@@ -151,9 +151,19 @@ export default function App() {
       if (base64) {
         setPlayingAudioFor(text);
         await playTTS(base64);
+      } else {
+        // Fallback to offline native speechSynthesis synthesis (extremely helpful when running on APK / WebViews)
+        setPlayingAudioFor(text);
+        await playOfflineVoice(cleanText);
       }
     } catch (e) {
-      console.error("Pronunciation failed:", e);
+      console.error("Pronunciation failed, triggering offline native speech fallback:", e);
+      try {
+        setPlayingAudioFor(text);
+        await playOfflineVoice(text);
+      } catch (innerErr) {
+        console.error("Total speech synthesis fallback failure:", innerErr);
+      }
     } finally {
       setLoadingAudioFor(null);
       setPlayingAudioFor(null);

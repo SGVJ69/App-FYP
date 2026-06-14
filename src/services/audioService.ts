@@ -61,3 +61,51 @@ export async function playTTS(base64: string): Promise<void> {
   });
 }
 
+export function playOfflineVoice(text: string): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      resolve();
+      return;
+    }
+    try {
+      // Cancel any active speech to avoid queuing delays
+      window.speechSynthesis.cancel();
+      
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+      
+      // Match Malay or Indonesian voices which vocalize Austronesian phonetics matching Kadazan perfectly
+      const targetVoice = voices.find(v => 
+        v.lang.toLowerCase().replace(/[-_]/g, '').startsWith('ms') ||
+        v.lang.toLowerCase().replace(/[-_]/g, '').startsWith('id') ||
+        v.name.toLowerCase().includes('indonesia') ||
+        v.name.toLowerCase().includes('malay')
+      );
+      
+      if (targetVoice) {
+        utterance.voice = targetVoice;
+        utterance.lang = targetVoice.lang;
+      } else {
+        utterance.lang = 'ms-MY';
+      }
+      
+      utterance.pitch = 1.07; // subtle pitch increase for general tone definition
+      utterance.rate = 0.85;  // slower speed so terms are highly discernible for beginners
+      
+      utterance.onend = () => {
+        resolve();
+      };
+      
+      utterance.onerror = (e) => {
+        console.warn("speechSynthesis utterance error:", e);
+        resolve();
+      };
+      
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.error("Offline speech generation failed:", err);
+      resolve();
+    }
+  });
+}
+
