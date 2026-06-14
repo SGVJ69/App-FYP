@@ -182,50 +182,299 @@ export async function playTTS(base64: string): Promise<void> {
   });
 }
 
+export interface PhoneticSegment {
+  type: 'vowel' | 'nasal' | 'fricative' | 'plosive' | 'silence';
+  char: string;
+  duration: number;
+}
+
+export function parseToPhoneticSegments(text: string): PhoneticSegment[] {
+  const segments: PhoneticSegment[] = [];
+  const normalized = text.toLowerCase()
+    .normalize('NFD')                     // Decompose any letters
+    .replace(/[\u0300-\u036f]/g, '')       // Strip diacritics
+    .replace(/[^a-z0-9 ]/g, '')           // Keep only safe characters
+    .trim();
+
+  for (let i = 0; i < normalized.length; i++) {
+    const char = normalized[i];
+    if (char === ' ') {
+      segments.push({ type: 'silence', char, duration: 0.14 });
+      continue;
+    }
+
+    // Vowel check
+    if (['a', 'e', 'i', 'o', 'u'].includes(char)) {
+      segments.push({ type: 'vowel', char, duration: 0.11 });
+    }
+    // Fricatives sibilance
+    else if (['s', 'h', 'v', 'f', 'z', 'x'].includes(char)) {
+      segments.push({ type: 'fricative', char, duration: 0.08 });
+    }
+    // Nasals
+    else if (['m', 'n', 'g'].includes(char)) {
+      if (char === 'n' && i + 1 < normalized.length && normalized[i + 1] === 'g') {
+        segments.push({ type: 'nasal', char: 'ng', duration: 0.09 });
+        i++; // skip next char 'g'
+      } else {
+        segments.push({ type: 'nasal', char, duration: 0.08 });
+      }
+    }
+    // Plosives
+    else if (['p', 'b', 't', 'd', 'k', 'c', 'j'].includes(char)) {
+      segments.push({ type: 'plosive', char, duration: 0.06 });
+    }
+    // Liquids mapped as thin vowel/glide transitions
+    else if (['r', 'l', 'y', 'w'].includes(char)) {
+      segments.push({ type: 'vowel', char, duration: 0.07 });
+    } else {
+      // Small silent gap
+      segments.push({ type: 'silence', char, duration: 0.04 });
+    }
+  }
+  return segments;
+}
+
+function speakSynthesizedText(segments: PhoneticSegment[], ctx: AudioContext): number {
+  const now = ctx.currentTime + 0.03;
+  
+  // Create fundamental glottal voice oscillator source
+  const osc = ctx.createOscillator();
+  const oscLPF = ctx.createBiquadFilter();
+  osc.type = 'triangle';
+  oscLPF.type = 'lowpass';
+  oscLPF.frequency.value = 1600; // soft roll-off for natural sounding pulse wave
+  osc.connect(oscLPF);
+
+  // Subtle natural vocal pitch vibrato (6.2Hz vibrato)
+  const vibratoOsc = ctx.createOscillator();
+  const vibratoGain = ctx.createGain();
+  vibratoOsc.frequency.value = 6.2;
+  vibratoGain.gain.value = 1.5;
+  vibratoOsc.connect(vibratoGain);
+  vibratoGain.connect(osc.frequency);
+
+  // Master volume gating for voicing node
+  const voiceGain = ctx.createGain();
+  voiceGain.gain.setValueAtTime(0.001, ctx.currentTime);
+  oscLPF.connect(voiceGain);
+
+  // Parallel formant filters to shape vowel phonetic regions
+  const formant1 = ctx.createBiquadFilter();
+  const formant2 = ctx.createBiquadFilter();
+  const formant3 = ctx.createBiquadFilter();
+
+  formant1.type = 'bandpass';
+  formant2.type = 'bandpass';
+  formant3.type = 'bandpass';
+
+  formant1.Q.value = 9;
+  formant2.Q.value = 9;
+  formant3.Q.value = 9;
+
+  const gainF1 = ctx.createGain();
+  const gainF2 = ctx.createGain();
+  const gainF3 = ctx.createGain();
+
+  voiceGain.connect(formant1);
+  voiceGain.connect(formant2);
+  voiceGain.connect(formant3);
+
+  formant1.connect(gainF1);
+  formant2.connect(gainF2);
+  formant3.connect(gainF3);
+
+  // Summarize main outputs
+  const masterGain = ctx.createGain();
+  masterGain.gain.setValueAtTime(0.35, ctx.currentTime);
+  masterGain.connect(ctx.destination);
+
+  gainF1.connect(masterGain);
+  gainF2.connect(masterGain);
+  gainF3.connect(masterGain);
+
+  // Create white noise source buffers for consonant sounds
+  const noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+  const noiseData = noiseBuf.getChannelData(0);
+  for (let i = 0; i < noiseBuf.length; i++) {
+    noiseData[i] = Math.random() * 2 - 1;
+  }
+
+  const noiseSource = ctx.createBufferSource();
+  noiseSource.buffer = noiseBuf;
+  noiseSource.loop = true;
+
+  const noiseFilter = ctx.createBiquadFilter();
+  noiseFilter.type = 'bandpass';
+  noiseFilter.frequency.setValueAtTime(4500, ctx.currentTime);
+  noiseFilter.Q.value = 1.2;
+
+  const noiseGain = ctx.createGain();
+  noiseGain.gain.setValueAtTime(0.001, ctx.currentTime);
+
+  noiseSource.connect(noiseFilter);
+  noiseFilter.connect(noiseGain);
+  noiseGain.connect(masterGain);
+
+  let t = now;
+  const basePitch = 145; // human voice register base frequency
+  const N = segments.length;
+
+  const FORMANT_MAP: Record<string, { f1: number, g1: number, f2: number, g2: number, f3: number, g3: number }> = {
+    a: { f1: 820, g1: 1.0, f2: 1250, g2: 0.65, f3: 2500, g3: 0.35 },
+    e: { f1: 520, g1: 0.8, f2: 1850, g2: 0.75, f3: 2600, g3: 0.45 },
+    i: { f1: 290, g1: 0.65, f2: 2250, g2: 0.85, f3: 2900, g3: 0.45 },
+    o: { f1: 520, g1: 0.95, f2: 950, g2: 0.55, f3: 2400, g3: 0.25 },
+    u: { f1: 310, g1: 0.75, f2: 850, g2: 0.45, f3: 2200, g3: 0.15 },
+    y: { f1: 290, g1: 0.55, f2: 2250, g2: 0.75, f3: 2900, g3: 0.35 },
+    w: { f1: 310, g1: 0.55, f2: 850, g2: 0.45, f3: 2200, g3: 0.15 },
+    r: { f1: 450, g1: 0.65, f2: 1550, g2: 0.55, f3: 2400, g3: 0.25 },
+    l: { f1: 400, g1: 0.75, f2: 1400, g2: 0.45, f3: 2300, g3: 0.25 },
+    default: { f1: 550, g1: 0.6, f2: 1500, g2: 0.6, f3: 2500, g3: 0.3 }
+  };
+
+  // Iteratively automate all audio parameter trajectories
+  for (let idx = 0; idx < N; idx++) {
+    const seg = segments[idx];
+    const relativeIdx = idx / N;
+    const intonation = Math.sin(relativeIdx * Math.PI) * 16;
+    const declination = - (relativeIdx * 10);
+    const pitch = basePitch + intonation + declination;
+
+    osc.frequency.setValueAtTime(pitch, t);
+
+    if (seg.type === 'vowel') {
+      const pr = FORMANT_MAP[seg.char] || FORMANT_MAP.default;
+      formant1.frequency.linearRampToValueAtTime(pr.f1, t + 0.035);
+      formant2.frequency.linearRampToValueAtTime(pr.f2, t + 0.035);
+      formant3.frequency.linearRampToValueAtTime(pr.f3, t + 0.035);
+      
+      gainF1.gain.linearRampToValueAtTime(pr.g1 * 0.25, t + 0.035);
+      gainF2.gain.linearRampToValueAtTime(pr.g2 * 0.25, t + 0.035);
+      gainF3.gain.linearRampToValueAtTime(pr.g3 * 0.25, t + 0.035);
+
+      voiceGain.gain.linearRampToValueAtTime(0.25, t + 0.015);
+      voiceGain.gain.setValueAtTime(0.25, t + seg.duration - 0.01);
+      voiceGain.gain.linearRampToValueAtTime(0.001, t + seg.duration);
+
+      noiseGain.gain.linearRampToValueAtTime(0.001, t + 0.012);
+    } 
+    else if (seg.type === 'nasal') {
+      formant1.frequency.linearRampToValueAtTime(240, t + 0.03);
+      formant2.frequency.linearRampToValueAtTime(800, t + 0.03);
+      formant3.frequency.linearRampToValueAtTime(1500, t + 0.03);
+      
+      gainF1.gain.linearRampToValueAtTime(0.28, t + 0.035);
+      gainF2.gain.linearRampToValueAtTime(0.1, t + 0.035);
+      gainF3.gain.linearRampToValueAtTime(0.04, t + 0.035);
+
+      voiceGain.gain.linearRampToValueAtTime(0.18, t + 0.015);
+      voiceGain.gain.setValueAtTime(0.18, t + seg.duration - 0.01);
+      voiceGain.gain.linearRampToValueAtTime(0.001, t + seg.duration);
+
+      noiseGain.gain.linearRampToValueAtTime(0.001, t + 0.015);
+    }
+    else if (seg.type === 'fricative') {
+      voiceGain.gain.linearRampToValueAtTime(0.001, t + 0.015);
+
+      let fFreq = 3000;
+      let fQ = 1.0;
+      let fVol = 0.04;
+      if (seg.char === 's') { fFreq = 6500; fQ = 1.8; fVol = 0.075; }
+      else if (seg.char === 'h') { fFreq = 1600; fQ = 0.7; fVol = 0.045; }
+      else if (seg.char === 'v' || seg.char === 'z') { fFreq = 3200; fQ = 1.2; fVol = 0.035; }
+
+      noiseFilter.frequency.setValueAtTime(fFreq, t);
+      noiseFilter.Q.setValueAtTime(fQ, t);
+
+      noiseGain.gain.linearRampToValueAtTime(fVol, t + 0.015);
+      noiseGain.gain.setValueAtTime(fVol, t + seg.duration - 0.015);
+      noiseGain.gain.linearRampToValueAtTime(0.001, t + seg.duration);
+
+      if (seg.char === 'v' || seg.char === 'z') {
+        voiceGain.gain.linearRampToValueAtTime(0.07, t + 0.01);
+        voiceGain.gain.setValueAtTime(0.07, t + seg.duration - 0.015);
+        voiceGain.gain.linearRampToValueAtTime(0.001, t + seg.duration);
+      }
+    }
+    else if (seg.type === 'plosive') {
+      voiceGain.gain.linearRampToValueAtTime(0.001, t + 0.015);
+
+      let pFreq = 2000;
+      let pVol = 0.08;
+      if (['p', 'b'].includes(seg.char)) { pFreq = 600; pVol = 0.055; }
+      else if (['t', 'd'].includes(seg.char)) { pFreq = 5400; pVol = 0.065; }
+
+      const burstStart = t + 0.015;
+      noiseFilter.frequency.setValueAtTime(pFreq, burstStart);
+      noiseGain.gain.setValueAtTime(0.001, t);
+      noiseGain.gain.setValueAtTime(pVol, burstStart);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, t + seg.duration);
+
+      if (['b', 'd', 'g'].includes(seg.char)) {
+        voiceGain.gain.setValueAtTime(0.07, burstStart);
+        voiceGain.gain.exponentialRampToValueAtTime(0.001, t + seg.duration);
+      }
+    }
+    else {
+      voiceGain.gain.linearRampToValueAtTime(0.001, t + 0.015);
+      noiseGain.gain.linearRampToValueAtTime(0.001, t + 0.015);
+    }
+
+    t += seg.duration;
+  }
+
+  osc.start(ctx.currentTime);
+  vibratoOsc.start(ctx.currentTime);
+  noiseSource.start(ctx.currentTime);
+
+  osc.stop(t + 0.1);
+  vibratoOsc.stop(t + 0.1);
+  noiseSource.stop(t + 0.1);
+
+  return t - ctx.currentTime;
+}
+
 export function playOfflineVoice(text: string): Promise<void> {
   return new Promise((resolve) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) {
-      resolve();
-      return;
-    }
     try {
-      // Cancel any active speech to avoid queuing delays
-      window.speechSynthesis.cancel();
-      
-      const utterance = new SpeechSynthesisUtterance(text);
-      const voices = window.speechSynthesis.getVoices();
-      
-      // Match Malay or Indonesian voices which vocalize Austronesian phonetics matching Kadazan perfectly
-      const targetVoice = voices.find(v => 
-        v.lang.toLowerCase().replace(/[-_]/g, '').startsWith('ms') ||
-        v.lang.toLowerCase().replace(/[-_]/g, '').startsWith('id') ||
-        v.name.toLowerCase().includes('indonesia') ||
-        v.name.toLowerCase().includes('malay')
-      );
-      
-      if (targetVoice) {
-        utterance.voice = targetVoice;
-        utterance.lang = targetVoice.lang;
-      } else {
-        utterance.lang = 'ms-MY';
+      primeAudioContext();
+      if (!ttsAudioCtx) {
+        throw new Error("No active AudioContext primed.");
       }
       
-      utterance.pitch = 1.07; // subtle pitch increase for general tone definition
-      utterance.rate = 0.85;  // slower speed so terms are highly discernible for beginners
-      
-      utterance.onend = () => {
+      const segments = parseToPhoneticSegments(text);
+      if (segments.length === 0) {
         resolve();
-      };
+        return;
+      }
+
+      const totalDuration = speakSynthesizedText(segments, ttsAudioCtx);
       
-      utterance.onerror = (e) => {
-        console.warn("speechSynthesis utterance error:", e);
+      // Resolve once pronunciation completes
+      setTimeout(() => {
         resolve();
-      };
-      
-      window.speechSynthesis.speak(utterance);
+      }, totalDuration * 1000 + 100);
+
     } catch (err) {
-      console.error("Offline speech generation failed:", err);
-      resolve();
+      console.warn("Client voice tract synthesizer failed, trying speechSynthesis fallback:", err);
+      
+      if (typeof window === 'undefined' || !window.speechSynthesis) {
+        resolve();
+        return;
+      }
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ms-MY';
+        utterance.rate = 0.85;
+        utterance.onend = () => resolve();
+        utterance.onerror = () => resolve();
+        window.speechSynthesis.speak(utterance);
+      } catch (innerErr) {
+        console.error("speechSynthesis fallback failed as well:", innerErr);
+        resolve();
+      }
     }
   });
 }
