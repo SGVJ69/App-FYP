@@ -21,12 +21,77 @@ import {
 import { playTTS, playOfflineVoice, primeAudioContext } from './services/audioService';
 
 const playSound = (type: 'correct' | 'wrong' | 'click') => {
-   const audio = new Audio(
-       type === 'correct' ? 'https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3' :
-       type === 'wrong' ? 'https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3' :
-       'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'
-   );
-   audio.play().catch(e => console.log('Audio error:', e));
+   try {
+     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+     if (!AudioContextClass) return;
+     const ctx = new AudioContextClass();
+     
+     if (type === 'correct') {
+       // Ascending cheerful chime: C5 (523.25 Hz) then E5 (659.25 Hz)
+       const now = ctx.currentTime;
+       
+       // First Tone
+       const osc1 = ctx.createOscillator();
+       const gain1 = ctx.createGain();
+       osc1.type = 'triangle';
+       osc1.frequency.setValueAtTime(523.25, now);
+       gain1.gain.setValueAtTime(0.2, now);
+       gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+       osc1.connect(gain1);
+       gain1.connect(ctx.destination);
+       osc1.start(now);
+       osc1.stop(now + 0.15);
+       
+       // Second Tone
+       const osc2 = ctx.createOscillator();
+       const gain2 = ctx.createGain();
+       osc2.type = 'triangle';
+       osc2.frequency.setValueAtTime(659.25, now + 0.08);
+       gain2.gain.setValueAtTime(0.2, now + 0.08);
+       gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+       osc2.connect(gain2);
+       gain2.connect(ctx.destination);
+       osc2.start(now + 0.08);
+       osc2.stop(now + 0.3);
+       
+     } else if (type === 'wrong') {
+       // Downward slide alert buzzer: G3 (196 Hz) to E3 (164.8 Hz)
+       const now = ctx.currentTime;
+       const osc = ctx.createOscillator();
+       const gain = ctx.createGain();
+       
+       osc.type = 'sawtooth';
+       osc.frequency.setValueAtTime(196, now);
+       osc.frequency.linearRampToValueAtTime(145, now + 0.25);
+       
+       gain.gain.setValueAtTime(0.15, now);
+       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+       
+       osc.connect(gain);
+       gain.connect(ctx.destination);
+       osc.start(now);
+       osc.stop(now + 0.28);
+       
+     } else if (type === 'click') {
+       // Clean bubble click: 850Hz decaying extremely fast
+       const now = ctx.currentTime;
+       const osc = ctx.createOscillator();
+       const gain = ctx.createGain();
+       
+       osc.type = 'sine';
+       osc.frequency.setValueAtTime(850, now);
+       
+       gain.gain.setValueAtTime(0.1, now);
+       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+       
+       osc.connect(gain);
+       gain.connect(ctx.destination);
+       osc.start(now);
+       osc.stop(now + 0.04);
+     }
+   } catch (e) {
+     console.warn('Synthesized offline sound playback failed:', e);
+   }
 };
 
 const triggerConfetti = () => {
@@ -142,31 +207,33 @@ export default function App() {
   const [playingAudioFor, setPlayingAudioFor] = useState<string | null>(null);
 
   const handlePronounce = async (text: string) => {
-    // Prime the AudioContext synchronously inside this user gesture event callback before requesting the audio payload
+    // Prime the AudioContext synchronously inside this user gesture event callback
     primeAudioContext();
 
     if (loadingAudioFor || playingAudioFor) return;
     setLoadingAudioFor(text);
     try {
-      // Clean up text if needed, e.g. strip special characters
       const cleanText = text.trim();
-      const base64 = await generateSpeech(cleanText);
-      if (base64) {
-        setPlayingAudioFor(text);
-        await playTTS(base64);
-      } else {
-        // Fallback to offline native speechSynthesis synthesis (extremely helpful when running on APK / WebViews)
-        setPlayingAudioFor(text);
+      setPlayingAudioFor(text);
+      
+      // Try offline native speech synthesis first (works completely offline, zero latency, no internet required)
+      let offlineSuccess = false;
+      try {
         await playOfflineVoice(cleanText);
+        offlineSuccess = true;
+      } catch (err) {
+        console.warn("Local playOfflineVoice failed, trying online speech fallback:", err);
+      }
+
+      // Only if offline speech synthesis is not supported or raises an error, fallback to online generation
+      if (!offlineSuccess) {
+        const base64 = await generateSpeech(cleanText);
+        if (base64) {
+          await playTTS(base64);
+        }
       }
     } catch (e) {
-      console.error("Pronunciation failed, triggering offline native speech fallback:", e);
-      try {
-        setPlayingAudioFor(text);
-        await playOfflineVoice(text);
-      } catch (innerErr) {
-        console.error("Total speech synthesis fallback failure:", innerErr);
-      }
+      console.error("All pronunciation methods failed:", e);
     } finally {
       setLoadingAudioFor(null);
       setPlayingAudioFor(null);
