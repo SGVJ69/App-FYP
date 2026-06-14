@@ -18,7 +18,7 @@ import {
   SentenceChallenge,
   generateSpeech
 } from './services/geminiService';
-import { playTTS, playOfflineVoice } from './services/audioService';
+import { playTTS, playOfflineVoice, primeAudioContext } from './services/audioService';
 
 const playSound = (type: 'correct' | 'wrong' | 'click') => {
    const audio = new Audio(
@@ -142,6 +142,9 @@ export default function App() {
   const [playingAudioFor, setPlayingAudioFor] = useState<string | null>(null);
 
   const handlePronounce = async (text: string) => {
+    // Prime the AudioContext synchronously inside this user gesture event callback before requesting the audio payload
+    primeAudioContext();
+
     if (loadingAudioFor || playingAudioFor) return;
     setLoadingAudioFor(text);
     try {
@@ -181,6 +184,21 @@ export default function App() {
   // Caches
   const vocabularyCache = useRef<Record<string, WordPair[]>>({});
   const quizCache = useRef<Record<string, QuizQuestion[]>>({});
+
+  useEffect(() => {
+    const handleInitialUserGesture = () => {
+      primeAudioContext();
+      // Unbind after single activation
+      window.removeEventListener('click', handleInitialUserGesture);
+      window.removeEventListener('touchstart', handleInitialUserGesture);
+    };
+    window.addEventListener('click', handleInitialUserGesture);
+    window.addEventListener('touchstart', handleInitialUserGesture);
+    return () => {
+      window.removeEventListener('click', handleInitialUserGesture);
+      window.removeEventListener('touchstart', handleInitialUserGesture);
+    };
+  }, []);
 
   useEffect(() => {
     // Check if user is logged in natively

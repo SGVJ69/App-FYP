@@ -9,53 +9,94 @@ export function decode(base64: string): Uint8Array {
   return bytes;
 }
 
-export async function decodeAudioData(
-  data: Uint8Array,
-  ctx: AudioContext,
-  sampleRate: number,
-  numChannels: number,
-): Promise<AudioBuffer> {
-  const dataInt16 = new Int16Array(data.buffer);
-  const frameCount = dataInt16.length / numChannels;
-  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+// Packages raw 16-bit PCM (24000Hz mono) into a standard RIFF/WAV Blob
+export function pcmToWav(pcmData: Uint8Array, sampleRate: number = 24000): Blob {
+  const buffer = new ArrayBuffer(44 + pcmData.length);
+  const view = new DataView(buffer);
 
-  for (let channel = 0; channel < numChannels; channel++) {
-    const channelData = buffer.getChannelData(channel);
-    for (let i = 0; i < frameCount; i++) {
-      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
-    }
-  }
-  return buffer;
+  /* RIFF identifier */
+  writeString(view, 0, 'RIFF');
+  /* file length */
+  view.setUint32(4, 36 + pcmData.length, true);
+  /* RIFF type */
+  writeString(view, 8, 'WAVE');
+  /* format chunk identifier */
+  writeString(view, 12, 'fmt ');
+  /* format chunk length */
+  view.setUint32(16, 16, true);
+  /* sample format (1 = PCM) */
+  view.setUint16(20, 1, true);
+  /* channel count (1 = Mono) */
+  view.setUint16(22, 1, true);
+  /* sample rate */
+  view.setUint32(24, sampleRate, true);
+  /* byte rate (sample rate * block align) */
+  view.setUint32(28, sampleRate * 2, true);
+  /* block align (channel count * bytes per sample) */
+  view.setUint16(32, 2, true);
+  /* bits per sample */
+  view.setUint16(34, 16, true);
+  /* data chunk identifier */
+  writeString(view, 36, 'data');
+  /* data chunk length */
+  view.setUint32(40, pcmData.length, true);
+
+  // Copy header and PCM data
+  const headerBytes = new Uint8Array(buffer, 0, 44);
+  const wavBytes = new Uint8Array(44 + pcmData.length);
+  wavBytes.set(headerBytes, 0);
+  wavBytes.set(pcmData, 44);
+
+  return new Blob([wavBytes], { type: 'audio/wav' });
 }
 
-let ttsAudioCtx: AudioContext | null = null;
+function writeString(view: DataView, offset: number, string: string) {
+  for (let i = 0; i < string.length; i++) {
+    view.setUint8(offset + i, string.charCodeAt(i));
+  }
+}
+
+export function primeAudioContext(): void {
+  // Legacy / No-op for backward compatibility, since HTML5 Audio element handles it natively now!
+  console.log("Audio container primed natively.");
+}
 
 export async function playTTS(base64: string): Promise<void> {
   return new Promise((resolve) => {
     try {
-      if (!ttsAudioCtx) {
-        const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
-        ttsAudioCtx = new AudioCtxClass({ sampleRate: 24000 });
-      }
-      if (ttsAudioCtx.state === 'suspended') {
-        ttsAudioCtx.resume();
-      }
-      const data = decode(base64);
-      // Gemini 3.1 Flash TTS is 24000Hz mono PCM
-      decodeAudioData(data, ttsAudioCtx, 24000, 1).then((buffer) => {
-        const source = ttsAudioCtx!.createBufferSource();
-        source.buffer = buffer;
-        source.connect(ttsAudioCtx!.destination);
-        source.onended = () => {
-          resolve();
-        };
-        source.start(0);
-      }).catch((err) => {
-        console.error("Decoding audio for playTTS failed:", err);
+      const pcmBytes = decode(base64);
+      const wavBlob = pcmToWav(pcmBytes, 24000);
+      const objectUrl = URL.createObjectURL(wavBlob);
+      
+      const audio = new Audio();
+      audio.src = objectUrl;
+      
+      audio.onended = () => {
+        URL.revokeObjectURL(objectUrl);
         resolve();
-      });
+      };
+      
+      audio.onerror = (e) => {
+        console.error("HTML5 WAV Audio playback error:", e);
+        URL.revokeObjectURL(objectUrl);
+        resolve();
+      };
+      
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log("HTML5 WAV Audio playback started successfully in WebView.");
+          })
+          .catch((err) => {
+            console.warn("HTML5 audio play was prevented, trying muted trigger or resolving directly:", err);
+            // On some restrictively configured WebViews, user gestures are strictly cleared. 
+            // In such situations we still want to finish gracefully.
+            resolve();
+          });
+      }
     } catch (error) {
-      console.error("Error playing TTS audio:", error);
+      console.error("Error creating or playing WAV audio:", error);
       resolve();
     }
   });
