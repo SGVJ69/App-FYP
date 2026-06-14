@@ -27,3 +27,37 @@ export async function decodeAudioData(
   }
   return buffer;
 }
+
+let ttsAudioCtx: AudioContext | null = null;
+
+export async function playTTS(base64: string): Promise<void> {
+  return new Promise((resolve) => {
+    try {
+      if (!ttsAudioCtx) {
+        const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+        ttsAudioCtx = new AudioCtxClass({ sampleRate: 24000 });
+      }
+      if (ttsAudioCtx.state === 'suspended') {
+        ttsAudioCtx.resume();
+      }
+      const data = decode(base64);
+      // Gemini 3.1 Flash TTS is 24000Hz mono PCM
+      decodeAudioData(data, ttsAudioCtx, 24000, 1).then((buffer) => {
+        const source = ttsAudioCtx!.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ttsAudioCtx!.destination);
+        source.onended = () => {
+          resolve();
+        };
+        source.start(0);
+      }).catch((err) => {
+        console.error("Decoding audio for playTTS failed:", err);
+        resolve();
+      });
+    } catch (error) {
+      console.error("Error playing TTS audio:", error);
+      resolve();
+    }
+  });
+}
+

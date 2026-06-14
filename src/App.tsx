@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Screen, WordPair, QuizQuestion, SpellingChallenge, UserProgress } from './types';
 import { Layout } from './components/Layout';
 import { AdminPanel } from './components/AdminPanel';
+import { Dictionary } from './components/Dictionary';
 import { auth, db } from './firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -14,8 +15,10 @@ import {
   getSpellingChallenge, 
   generateImage, 
   getSentenceBuilderChallenge,
-  SentenceChallenge
+  SentenceChallenge,
+  generateSpeech
 } from './services/geminiService';
+import { playTTS } from './services/audioService';
 
 const playSound = (type: 'correct' | 'wrong' | 'click') => {
    const audio = new Audio(
@@ -133,6 +136,29 @@ export default function App() {
   
   // Feedback State
   const [feedbackMsg, setFeedbackMsg] = useState('');
+  
+  // Audio Pronunciation States
+  const [loadingAudioFor, setLoadingAudioFor] = useState<string | null>(null);
+  const [playingAudioFor, setPlayingAudioFor] = useState<string | null>(null);
+
+  const handlePronounce = async (text: string) => {
+    if (loadingAudioFor || playingAudioFor) return;
+    setLoadingAudioFor(text);
+    try {
+      // Clean up text if needed, e.g. strip special characters
+      const cleanText = text.trim();
+      const base64 = await generateSpeech(cleanText);
+      if (base64) {
+        setPlayingAudioFor(text);
+        await playTTS(base64);
+      }
+    } catch (e) {
+      console.error("Pronunciation failed:", e);
+    } finally {
+      setLoadingAudioFor(null);
+      setPlayingAudioFor(null);
+    }
+  };
   
   // Spelling Input
   const [userSpelling, setUserSpelling] = useState('');
@@ -772,6 +798,32 @@ export default function App() {
                   </div>
                </button>
 
+               {/* Dictionary Card */}
+               <button 
+                 onClick={() => {
+                   playSound('click');
+                   setCurrentScreen(Screen.DICTIONARY);
+                 }} 
+                 className="aspect-square sm:col-span-2 col-span-2 bg-emerald-600 border-b-4 sm:border-b-8 border-r-4 sm:border-r-8 border-black rounded-[2rem] sm:rounded-[3.5rem] p-4 sm:p-8 flex flex-col justify-between hover:translate-x-1 hover:translate-y-1 hover:border-b-4 hover:border-r-4 transition-all group shadow-lg active:scale-95 relative overflow-hidden"
+               >
+                  <img src="https://images.unsplash.com/photo-1544640808-32ca72ac7f37?auto=format&fit=crop&q=80&w=800" className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-30" referrerPolicy="no-referrer" alt="Dictionary background" />
+                  <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-emerald-950/90 to-transparent"></div>
+                  <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-black/80 to-transparent"></div>
+                  
+                  <div className="w-10 h-10 sm:w-16 sm:h-16 bg-white text-emerald-600 rounded-xl sm:rounded-2xl flex items-center justify-center text-xl sm:text-3xl shadow-xl group-hover:rotate-12 transition-transform relative z-10 self-start">
+                    <i className="fas fa-book"></i>
+                  </div>
+                  <div className="text-left relative z-10 flex gap-4 items-center justify-between w-full mt-4">
+                    <div>
+                      <h3 className="font-black text-white text-lg sm:text-3xl tracking-tighter leading-none mb-1 drop-shadow-md">Kadazan Dictionary</h3>
+                      <p className="text-amber-400 text-[10px] sm:text-xs font-black uppercase tracking-widest drop-shadow-md">KOTOBUTAN BOROS</p>
+                    </div>
+                    <div className="text-white opacity-80 group-hover:opacity-100 group-hover:translate-x-2 transition-all">
+                       <i className="fas fa-language text-2xl text-amber-300"></i>
+                    </div>
+                  </div>
+               </button>
+
                {/* Memory Game Card */}
                <button 
                  onClick={() => {
@@ -921,14 +973,44 @@ export default function App() {
                   </div>
                   <div className="flex-grow text-center sm:text-left flex flex-col">
                     <p className="text-red-600 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.4em] mb-1">{v.english}</p>
-                    <p className="text-2xl sm:text-4xl font-black text-black tracking-tighter leading-none mb-1">{v.kadazan}</p>
+                    <div className="flex items-center justify-center sm:justify-start gap-3 mb-1">
+                      <p className="text-2xl sm:text-4xl font-black text-black tracking-tighter leading-none">{v.kadazan}</p>
+                      <button 
+                        onClick={() => handlePronounce(v.kadazan)}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200 outline-none pr-0.5 ${loadingAudioFor === v.kadazan ? 'animate-pulse' : ''}`}
+                        title="Listen Pronunciation"
+                      >
+                        {loadingAudioFor === v.kadazan ? (
+                          <i className="fas fa-spinner animate-spin text-xs"></i>
+                        ) : playingAudioFor === v.kadazan ? (
+                          <i className="fas fa-volume-high text-red-500 scale-110 text-xs"></i>
+                        ) : (
+                          <i className="fas fa-volume-up text-xs"></i>
+                        )}
+                      </button>
+                    </div>
                     <p className="text-sm sm:text-lg font-bold text-amber-600 tracking-tight leading-none mb-2 italic">({v.malay})</p>
                     
                     {v.example && (
-                      <div className="mt-4 space-y-2 p-3 sm:p-4 bg-slate-50 rounded-[1.5rem] sm:rounded-2xl border border-slate-100">
-                        <p className="text-sm sm:text-base text-slate-800 font-bold leading-relaxed italic opacity-90">"{v.example}"</p>
-                        <p className="text-xs sm:text-sm text-amber-600 font-bold italic border-t border-slate-200 pt-1">"{v.exampleMalay}"</p>
-                        <p className="text-[10px] sm:text-sm text-slate-400 font-medium italic">"{v.exampleEnglish}"</p>
+                      <div className="mt-4 space-y-2 p-3 sm:p-4 bg-slate-50 rounded-[1.5rem] sm:rounded-2xl border border-slate-100 relative">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm sm:text-base text-slate-800 font-bold leading-relaxed italic opacity-90 flex-grow pr-10 text-left">"{v.example}"</p>
+                          <button
+                            onClick={() => handlePronounce(v.example)}
+                            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all bg-white text-slate-500 hover:text-amber-600 hover:bg-amber-50 border border-slate-200 absolute top-3 right-3 sm:top-4 sm:right-4 ${loadingAudioFor === v.example ? 'animate-pulse' : ''}`}
+                            title="Listen Pronunciation"
+                          >
+                            {loadingAudioFor === v.example ? (
+                              <i className="fas fa-spinner animate-spin text-[11px]"></i>
+                            ) : playingAudioFor === v.example ? (
+                              <i className="fas fa-volume-high text-red-500 text-[11px]"></i>
+                            ) : (
+                              <i className="fas fa-volume-up text-[11px]"></i>
+                            )}
+                          </button>
+                        </div>
+                        <p className="text-xs sm:text-sm text-amber-600 font-bold italic border-t border-slate-200 pt-1 text-left">"{v.exampleMalay}"</p>
+                        <p className="text-[10px] sm:text-sm text-slate-400 font-medium italic text-left">"{v.exampleEnglish}"</p>
                       </div>
                     )}
                   </div>
@@ -951,10 +1033,33 @@ export default function App() {
               </div>
             </div>
             
-            <div className="text-center px-4">
-               <h3 className="text-4xl sm:text-6xl font-black text-black tracking-tighter uppercase mb-4 sm:mb-6 kadazan-title italic">{spellingChallenge.english}</h3>
-               <div className="bg-amber-400 px-4 sm:px-8 py-2 sm:py-3.5 rounded-full sm:rounded-[1.5rem] inline-block border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] sm:shadow-[6px_6px_0px_rgba(0,0,0,1)]">
-                  <p className="text-black font-black text-[9px] sm:text-[11px] uppercase tracking-[0.2em] sm:tracking-[0.3em]">HINT: {spellingChallenge.hint}</p>
+            <div className="text-center px-4 space-y-3 flex flex-col items-center">
+               <h3 className="text-4xl sm:text-6xl font-black text-black tracking-tighter uppercase mb-2 kadazan-title italic">{spellingChallenge.english}</h3>
+               <div className="flex flex-wrap items-center justify-center gap-3">
+                  <div className="bg-amber-400 px-4 sm:px-8 py-2 sm:py-3.5 rounded-full sm:rounded-[1.5rem] inline-block border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] sm:shadow-[6px_6px_0px_rgba(0,0,0,1)]">
+                     <p className="text-black font-black text-[9px] sm:text-[11px] uppercase tracking-[0.2em] sm:tracking-[0.3em]">HINT: {spellingChallenge.hint}</p>
+                  </div>
+                  <button
+                     onClick={() => handlePronounce(spellingChallenge.kadazan)}
+                     className={`px-4 py-2 bg-black text-amber-400 rounded-full border-2 border-slate-900 shadow-[4px_4px_0px_rgba(255,228,54,1)] text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-slate-800 active:scale-95 transition-all outline-none ${loadingAudioFor === spellingChallenge.kadazan ? 'animate-pulse' : ''}`}
+                  >
+                     {loadingAudioFor === spellingChallenge.kadazan ? (
+                       <>
+                         <i className="fas fa-spinner animate-spin text-[11px]"></i>
+                         <span>Loading...</span>
+                       </>
+                     ) : playingAudioFor === spellingChallenge.kadazan ? (
+                       <>
+                         <i className="fas fa-volume-high text-red-400 scale-110 text-[11px]"></i>
+                         <span>Speaking...</span>
+                       </>
+                     ) : (
+                       <>
+                         <i className="fas fa-volume-up text-[11px]"></i>
+                         <span>Listen Hint</span>
+                       </>
+                     )}
+                  </button>
                </div>
             </div>
 
@@ -979,12 +1084,40 @@ export default function App() {
               <div className={`w-full max-w-sm flex flex-col p-8 rounded-[3.5rem] text-center font-black animate-in slide-in-from-bottom-10 ${feedbackMsg.includes('KOPISIAN') ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'} border-4 border-black shadow-[15px_15px_0px_rgba(0,0,0,1)]`}>
                 <p className="text-3xl leading-tight uppercase tracking-tight mb-6">{feedbackMsg}</p>
                 {feedbackMsg.includes('KOPISIAN') ? (
-                  <button onClick={handleStartSpelling} className="w-full py-4 bg-white text-emerald-900 rounded-[2rem] font-black text-xl hover:bg-slate-100 border-b-4 border-emerald-900 active:scale-95 transition-all">NEXT WORD</button>
+                  <div className="space-y-4">
+                    <button
+                      onClick={() => handlePronounce(spellingChallenge.kadazan)}
+                      className="w-full py-3 bg-emerald-800 text-white rounded-[2rem] font-black text-sm hover:bg-emerald-900 active:scale-95 transition-all flex items-center justify-center gap-2 border-b-4 border-emerald-950 outline-none"
+                    >
+                      {loadingAudioFor === spellingChallenge.kadazan ? (
+                        <i className="fas fa-spinner animate-spin"></i>
+                      ) : playingAudioFor === spellingChallenge.kadazan ? (
+                        <i className="fas fa-volume-high text-yellow-300 scale-110 animate-pulse"></i>
+                      ) : (
+                        <i className="fas fa-volume-up"></i>
+                      )}
+                      <span>LISTEN PRONUNCIATION</span>
+                    </button>
+                    <button onClick={handleStartSpelling} className="w-full py-4 bg-white text-emerald-900 rounded-[2rem] font-black text-xl hover:bg-slate-100 border-b-4 border-emerald-900 active:scale-95 transition-all">NEXT WORD</button>
+                  </div>
                 ) : (
                   <div className="flex flex-col gap-6">
-                     <div className="bg-red-900/30 p-4 rounded-3xl">
-                       <p className="text-xs uppercase tracking-[0.3em] text-red-200 mb-2">Right Answer:</p>
+                     <div className="bg-red-900/30 p-4 rounded-3xl flex flex-col items-center gap-2">
+                       <p className="text-xs uppercase tracking-[0.3em] text-red-200">Right Answer:</p>
                        <p className="text-4xl text-white tracking-widest">{spellingChallenge.kadazan}</p>
+                       <button
+                         onClick={() => handlePronounce(spellingChallenge.kadazan)}
+                         className="px-4 py-1.5 bg-red-800 hover:bg-red-900 text-white rounded-full text-xs font-black tracking-wide flex items-center gap-1.5 active:scale-95 transition-all border border-red-700 outline-none"
+                       >
+                         {loadingAudioFor === spellingChallenge.kadazan ? (
+                           <i className="fas fa-spinner animate-spin"></i>
+                         ) : playingAudioFor === spellingChallenge.kadazan ? (
+                           <i className="fas fa-volume-high text-yellow-300 animate-pulse"></i>
+                         ) : (
+                           <i className="fas fa-volume-up"></i>
+                         )}
+                         <span>HEAR PRONUNCIATION</span>
+                       </button>
                      </div>
                      <div className="flex gap-4">
                        <button onClick={() => { setFeedbackMsg(''); setUserSpelling(''); }} className="flex-1 py-4 bg-white text-red-900 rounded-[2rem] font-black hover:bg-slate-100 border-b-4 border-red-900 active:scale-95 transition-all">RETRY</button>
@@ -1247,6 +1380,34 @@ export default function App() {
                     <p className={`text-lg sm:text-xl font-bold italic ${sentenceResult.correct ? 'text-emerald-700' : 'text-red-700'}`}>
                       {sentenceResult.feedback}
                     </p>
+
+                    <div className="flex flex-col items-center justify-center gap-2 py-1">
+                       <button
+                         onClick={() => handlePronounce(sentenceChallenge.kadazan)}
+                         className={`px-5 py-2.5 rounded-full font-black text-xs tracking-wider uppercase flex items-center justify-center gap-2 active:scale-95 transition-all outline-none border-2 shadow-sm ${
+                           sentenceResult.correct 
+                           ? 'bg-emerald-200 hover:bg-emerald-300 text-emerald-900 border-emerald-300' 
+                           : 'bg-red-200 hover:bg-red-300 text-red-900 border-red-300'
+                         }`}
+                       >
+                         {loadingAudioFor === sentenceChallenge.kadazan ? (
+                           <>
+                             <i className="fas fa-spinner animate-spin"></i>
+                             <span>Loading Pronunciation...</span>
+                           </>
+                         ) : playingAudioFor === sentenceChallenge.kadazan ? (
+                           <>
+                             <i className="fas fa-volume-high scale-110 animate-pulse text-rose-600"></i>
+                             <span>Speaking Sentence...</span>
+                           </>
+                         ) : (
+                           <>
+                             <i className="fas fa-volume-up"></i>
+                             <span>Hear Sentence Pronunciation</span>
+                           </>
+                         )}
+                       </button>
+                    </div>
                     
                     {!sentenceResult.correct && sentenceResult.correction && (
                        <div className="bg-white/50 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 border-red-200 inline-block">
@@ -1282,6 +1443,16 @@ export default function App() {
               </div>
             )}
           </div>
+        );
+
+      case Screen.DICTIONARY:
+        return (
+          <Dictionary 
+            onBack={() => setCurrentScreen(Screen.DASHBOARD)}
+            handlePronounce={handlePronounce}
+            loadingAudioFor={loadingAudioFor}
+            playingAudioFor={playingAudioFor}
+          />
         );
 
       case Screen.ABOUT:

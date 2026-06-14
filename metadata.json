@@ -1,6 +1,8 @@
 {
   "name": "K-Learn: Kadazan Language Hub",
-  "description": "Learn the standard Kadazan language through Sabah's heritage with interactive quizzes, vocabulary, spelling, and spelling challenges.",
+  "description": "Learn the standard Kadazan language through Sabah's heritage with interactive quizzes, vocabulary, spelling, a live Kadazan dictionary, and spelling challenges.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

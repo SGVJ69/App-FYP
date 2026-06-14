@@ -13,7 +13,8 @@ export enum Screen {
   PROGRESS = 'PROGRESS',
   MEMORY_GAME = 'MEMORY_GAME',
   MEMORY_THEMES = 'MEMORY_THEMES',
-  ADMIN = 'ADMIN'
+  ADMIN = 'ADMIN',
+  DICTIONARY = 'DICTIONARY'
 }
 
 export interface UserProgress {
