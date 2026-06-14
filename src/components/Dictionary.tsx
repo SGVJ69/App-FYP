@@ -50,14 +50,20 @@ export const Dictionary: React.FC<DictionaryProps> = ({
     ];
   }, []);
 
-  const handleAISearch = async () => {
-    if (!searchQuery.trim() || loadingAI) return;
+  const handleAISearch = async (overrideQuery?: string) => {
+    const queryToSearch = overrideQuery || searchQuery;
+    if (!queryToSearch.trim() || loadingAI) return;
+    
+    if (overrideQuery) {
+      setSearchQuery(overrideQuery);
+    }
+    
     setLoadingAI(true);
     setAiError(null);
     setAiResult(null);
 
     try {
-      const result = await translateWithAIDictionary(searchQuery);
+      const result = await translateWithAIDictionary(queryToSearch);
       if (result && result.success) {
         setAiResult(result);
       } else {
@@ -85,7 +91,13 @@ export const Dictionary: React.FC<DictionaryProps> = ({
       </div>
 
       {/* Interactive Search Panel */}
-      <div className="bg-white p-5 rounded-[2.5rem] border-4 border-black shadow-[6px_6px_0px_rgba(0,0,0,1)] space-y-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleAISearch();
+        }}
+        className="bg-white p-5 rounded-[2.5rem] border-4 border-black shadow-[6px_6px_0px_rgba(0,0,0,1)] space-y-4"
+      >
         <div className="relative">
           <input
             type="text"
@@ -99,13 +111,14 @@ export const Dictionary: React.FC<DictionaryProps> = ({
               }
             }}
             placeholder="Type a word or sentence..."
-            className="w-full pl-12 pr-4 py-5 bg-slate-50 border-2 border-slate-200 rounded-2xl font-bold text-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-amber-400 focus:bg-white transition-all shadow-inner"
+            className="w-full pl-12 pr-12 py-5 bg-slate-50 border-2 border-slate-200 rounded-2xl font-bold text-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-amber-400 focus:bg-white transition-all shadow-inner"
           />
           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
             <i className="fas fa-search text-xl"></i>
           </div>
           {searchQuery && (
             <button
+              type="button"
               onClick={() => {
                 setSearchQuery('');
                 setAiResult(null);
@@ -122,7 +135,7 @@ export const Dictionary: React.FC<DictionaryProps> = ({
         {searchQuery.trim() && (
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <button
-              onClick={handleAISearch}
+              type="submit"
               disabled={loadingAI}
               className="flex-1 py-4 bg-amber-400 hover:bg-amber-500 text-black border-2 border-black rounded-2xl font-black text-sm tracking-widest uppercase flex items-center justify-center gap-2 active:scale-95 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
             >
@@ -140,7 +153,7 @@ export const Dictionary: React.FC<DictionaryProps> = ({
             </button>
           </div>
         )}
-      </div>
+      </form>
 
       {/* Main Content Area */}
       <div className="space-y-6">
@@ -262,23 +275,34 @@ export const Dictionary: React.FC<DictionaryProps> = ({
         {/* Static search results list */}
         {searchQuery.trim() && filteredWords.length > 0 && (
           <div className="space-y-4">
-            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">
-              LOCAL MATCHES ({filteredWords.length})
+            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
+              <span>LOCAL MATCHES ({filteredWords.length})</span>
+              <span className="text-[10px] font-bold text-amber-600">Tip: Click cards for dynamic notes</span>
             </h3>
             <div className="grid gap-4">
               {filteredWords.map((v, i) => (
                 <div
                   key={i}
-                  className="bg-white p-5 rounded-3xl border-2 border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-amber-400 transition-all shadow-sm"
+                  onClick={() => handleAISearch(v.kadazan)}
+                  className="bg-white p-5 rounded-3xl border-2 border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-amber-400 cursor-pointer transition-all shadow-sm hover:bg-slate-50/50 group text-left"
                 >
                   <div className="space-y-1">
-                    <span className="bg-slate-100 text-slate-500 text-[8px] font-black tracking-widest px-2 py-0.5 rounded-md uppercase">
-                      {v.category}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-slate-100 text-slate-500 text-[8px] font-black tracking-widest px-2 py-0.5 rounded-md uppercase">
+                        {v.category}
+                      </span>
+                      <span className="text-[9px] font-bold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i className="fas fa-arrow-right mr-1"></i>View definition
+                      </span>
+                    </div>
                     <div className="flex items-baseline gap-2">
-                      <p className="text-xl font-black text-slate-900">{v.kadazan}</p>
+                      <p className="text-xl font-black text-slate-900 group-hover:text-amber-500 transition-colors">{v.kadazan}</p>
                       <button
-                        onClick={() => handlePronounce(v.kadazan)}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePronounce(v.kadazan);
+                        }}
                         className={`w-7 h-7 rounded-full flex items-center justify-center transition-all bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200 outline-none ${
                           loadingAudioFor === v.kadazan ? 'animate-pulse' : ''
                         }`}
@@ -299,7 +323,7 @@ export const Dictionary: React.FC<DictionaryProps> = ({
                   </div>
 
                   {v.example && (
-                    <div className="max-w-xs text-left bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs text-slate-600">
+                    <div className="max-w-xs text-left bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs text-slate-600 group-hover:bg-amber-50/30 transition-colors">
                       <p className="italic font-bold">"{v.example}"</p>
                       <p className="text-slate-400 mt-1">"{v.exampleEnglish}"</p>
                     </div>
@@ -335,25 +359,34 @@ export const Dictionary: React.FC<DictionaryProps> = ({
         {/* Welcome / Suggestions view if query is empty */}
         {!searchQuery.trim() && (
           <div className="space-y-4">
-            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest">
-              POPULAR KADAZAN EXPRESSIONS
+            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
+              <span>POPULAR KADAZAN EXPRESSIONS</span>
+              <span className="text-[10px] font-bold text-amber-600">Tip: Click cards for dynamic notes</span>
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {suggestionWords.map((v, i) => (
                 <div
                   key={i}
-                  className="bg-white p-5 rounded-3xl border-2 border-slate-100 gap-4 hover:border-amber-400 transition-all shadow-sm flex flex-col justify-between"
+                  onClick={() => handleAISearch(v.kadazan)}
+                  className="bg-white p-5 rounded-3xl border-2 border-slate-100 gap-4 hover:border-amber-400 cursor-pointer transition-all shadow-sm flex flex-col justify-between hover:bg-slate-50/50 group text-left"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="bg-amber-100 text-amber-800 text-[8px] font-black tracking-widest px-2 py-0.5 rounded-md uppercase">
                         {v.category}
                       </span>
+                      <span className="text-[9px] font-bold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <i className="fas fa-arrow-right mr-1"></i>View definition
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <p className="text-xl font-black text-slate-900">{v.kadazan}</p>
+                      <p className="text-xl font-black text-slate-900 group-hover:text-amber-500 transition-colors">{v.kadazan}</p>
                       <button
-                        onClick={() => handlePronounce(v.kadazan)}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePronounce(v.kadazan);
+                        }}
                         className={`w-7 h-7 rounded-full flex items-center justify-center transition-all bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200 outline-none ${
                           loadingAudioFor === v.kadazan ? 'animate-pulse' : ''
                         }`}
@@ -373,7 +406,7 @@ export const Dictionary: React.FC<DictionaryProps> = ({
                     </p>
                   </div>
                   {v.example && (
-                    <div className="text-left bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-[11px] text-slate-600">
+                    <div className="text-left bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-[11px] text-slate-600 group-hover:bg-amber-50/30 transition-colors">
                       <p className="italic font-bold">"{v.example}"</p>
                       <p className="text-slate-400">"{v.exampleEnglish}"</p>
                     </div>

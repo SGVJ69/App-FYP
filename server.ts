@@ -3,7 +3,7 @@ dotenv.config();
 
 import express from "express";
 import path from "path";
-import { GoogleGenAI, Modality } from "@google/genai";
+import { GoogleGenAI, Modality, Type } from "@google/genai";
 import { createServer as createViteServer } from "vite";
 
 async function startServer() {
@@ -26,26 +26,36 @@ async function startServer() {
       }
 
       const ai = new GoogleGenAI({ apiKey });
-      const systemPrompt = `You are a professional Kadazan linguistic translator and dictionary.
-Translate the input word or phrase to/from Standard Kadazan, English, and Sabah Malay.
-Determine the language of the input, locate or construct the accurate translation, and provide the result strictly in this JSON format:
-{
-  "english": "English equivalent",
-  "kadazan": "Standard Kadazan translation (correctly spelled)",
-  "malay": "Standard Malay equivalent",
-  "category": "General Category (e.g. Action, Greeting, Food, Object, Nature, Emotion, Custom)",
-  "example": "A realistic, grammatically correct standard Kadazan sentence using the word",
-  "exampleEnglish": "English translation of the Kadazan example sentence",
-  "exampleMalay": "Malay translation of the Kadazan example sentence",
-  "explanation": "A concise, friendly, high-quality note explaining the pronunciation, cultural context, or grammatical details (like prefixes/suffixes used) of the Kadazan word."
-}`;
+      const systemPrompt = `You are a professional Kadazan linguistic translator and dictionary master specializing in the standard coastal Kadazan dialect.
+Your task is to translate any user input (word, phrase, or sentence) to/from Standard Kadazan, English, and Sabah Malay.
+
+KEY DIRECTIVES:
+1. Identify the input language (e.g. English, Malay, Kadazan, or any other language) and always generate a high-quality translation for the other fields.
+2. If the concept lacks a 1-to-1 standard Kadazan word, you must construct an accurate translation using authentic Kadazan grammar, affixes (such as ko-, moki-, po-, -an, -on), or compound words. We want ALL words or phrases to refer to standard Kadazan. NEVER leave 'kadazan' empty, 'N/A', or 'Unknown'.
+3. Formulate a useful, real-world example sentence ('example') in Standard Kadazan using the translated word/phrase.
+4. Translate this example sentence to English ('exampleEnglish') and Malay ('exampleMalay').
+5. Provide a friendly and highly educational linguistic/cultural explanation ('explanation'). Break down the prefixes/suffixes, suggest correct pronunciation, and offer relevant contexts. Do not mention "AI" or "machine translation"; speak as an authentic Sabahan native dictionary.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-3.5-flash",
-        contents: `Translate and analyze this word or phrase: "${text}"`,
+        contents: `Translate and provide standard definitions for: "${text}"`,
         config: {
           systemInstruction: systemPrompt,
           responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              english: { type: Type.STRING, description: "Accurate English translation or original word" },
+              kadazan: { type: Type.STRING, description: "Standard Kadazan translation (NEVER empty or N/A)" },
+              malay: { type: Type.STRING, description: "Sabah Malay translation" },
+              category: { type: Type.STRING, description: "Category of the word/phrase (e.g., Action, Greeting, Food, Object, Nature, Custom, General)" },
+              example: { type: Type.STRING, description: "Realistic standard Kadazan example sentence using the word" },
+              exampleEnglish: { type: Type.STRING, description: "English translation of the example sentence" },
+              exampleMalay: { type: Type.STRING, description: "Malay translation of the example sentence" },
+              explanation: { type: Type.STRING, description: "Fascinating linguistic details, root words, or pronunciation guides of the Kadazan word" }
+            },
+            required: ["english", "kadazan", "malay", "category", "example", "exampleEnglish", "exampleMalay", "explanation"]
+          }
         },
       });
 
