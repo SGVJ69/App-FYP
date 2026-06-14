@@ -41,11 +41,11 @@ async function startServer() {
 Your task is to translate any user input (word, phrase, or sentence) to/from Standard Kadazan, English, and Sabah Malay.
 
 KEY DIRECTIVES:
-1. Identify the input language (e.g. English, Malay, Kadazan, or any other language) and always generate a high-quality translation for the other fields.
-2. If the concept lacks a 1-to-1 standard Kadazan word, you must construct an accurate translation using authentic Kadazan grammar, affixes (such as ko-, moki-, po-, -an, -on), or compound words. We want ALL words or phrases to refer to standard Kadazan. NEVER leave 'kadazan' empty, 'N/A', or 'Unknown'.
-3. Formulate a useful, real-world example sentence ('example') in Standard Kadazan using the translated word/phrase.
-4. Translate this example sentence to English ('exampleEnglish') and Malay ('exampleMalay').
-5. Provide a friendly and highly educational linguistic/cultural explanation ('explanation'). Break down the prefixes/suffixes, suggest correct pronunciation, and offer relevant contexts. Do not mention "AI" or "machine translation"; speak as an authentic Sabahan native dictionary.`;
+1. Identify the input language (especially standard Malay words from the authoritative Kamus Dewan compiled by Dewan Bahasa dan Pustaka, English, or Kadazan) and generate an elite, educational, scholarly bilingual mapping.
+2. If the concept is a complex or literary Kamus Dewan Malay term, construct an authentic Kadazan equivalent using proper morphological affixes (such as ko-, moki-, po-, -an, -on), compound structures, or descriptive phrases. Ensure 'kadazan' is NEVER empty, 'N/A', or 'Unknown'.
+3. Formulate a highly natural, grammatically correct example sentence ('example') in Standard Coastal Kadazan incorporating the translated word/phrase.
+4. Translate this example sentence perfectly to English ('exampleEnglish') and Standard/Sabah Malay ('exampleMalay').
+5. In your linguistic explanation ('explanation'), explicitly highlight the classical or modern Kamus Dewan Malay root, how it aligns with the Kadazan translation, and a clear, simple guide on Kadazan pronunciation (e.g., glottal stops or double vowels). Do not mention machine-learning; act as an authoritative Sabahan dictionary.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-3.5-flash",

@@ -268,8 +268,21 @@ export const Dictionary: React.FC<DictionaryProps> = ({
         </p>
       </div>
 
-      {/* Interactive Global Search & AI Translator */}
+      {/* Interactive Global Search & KLearn Translator */}
       <div className="bg-white p-5 rounded-[2.5rem] border-4 border-black shadow-[6px_6px_0px_rgba(0,0,0,1)] space-y-4">
+        {/* Universal KLearn Translation Engine Banner */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-gradient-to-r from-slate-950 to-blue-950 text-amber-400 px-5 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-wider border-2 border-black shadow-inner">
+          <div className="flex items-center gap-2 flex-wrap text-left">
+            <span className="flex h-2.5 w-2.5 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <i className="fas fa-globe text-emerald-400"></i>
+            <span>KLearn Universal Multi-Language Dictionary Engine Active</span>
+          </div>
+          <span className="text-amber-200 text-[9px] font-black">TYPE ANY WORD OR PHRASE IN THE WORLD</span>
+        </div>
+
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -290,7 +303,7 @@ export const Dictionary: React.FC<DictionaryProps> = ({
                 if (wordOfTheDay) setActiveWord(wordOfTheDay);
               }
             }}
-            placeholder="Search by english, Kadazan, or Malay, or type a sentence..."
+            placeholder="Type ANY word, phrase, sentence or Kamus Dewan term (e.g., happiness, prihatin, beautiful day)..."
             className="w-full pl-12 pr-12 py-5 bg-slate-50 border-2 border-slate-200 rounded-2xl font-bold text-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-amber-400 focus:bg-white transition-all shadow-inner"
           />
           <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
@@ -314,6 +327,17 @@ export const Dictionary: React.FC<DictionaryProps> = ({
           )}
         </form>
 
+        {/* Dynamic Instructional Helper Badge */}
+        <div className="bg-amber-100/60 p-4 rounded-xl border border-amber-200 text-xs text-amber-900 font-bold flex items-start gap-2.5 text-left">
+          <i className="fas fa-lightbulb text-amber-600 text-sm mt-0.5 animate-bounce"></i>
+          <div>
+            <p className="font-extrabold uppercase text-[10px] tracking-wider text-amber-900">🌟 Dynamic Universal Lookup</p>
+            <p className="text-[11px] font-semibold text-amber-800 leading-snug mt-0.5">
+              Type any vocabulary word or conversational phrase in English, Standard Malay (Dewan Bahasa/Dewan Bahasa Pustaka), or Sabah Dialect. Our KLearn engine translates it directly on-the-fly and explains grammar structures with correct pronunciation guides!
+            </p>
+          </div>
+        </div>
+
         {searchQuery.trim() && (
           <div className="flex flex-col sm:flex-row gap-3 pt-1">
             <button
@@ -331,7 +355,7 @@ export const Dictionary: React.FC<DictionaryProps> = ({
               ) : (
                 <>
                   <i className="fas fa-magic text-red-600"></i>
-                  <span>Translation in Kadazan</span>
+                  <span>Translate "{searchQuery}" instantly with KLearn</span>
                 </>
               )}
             </button>
@@ -472,9 +496,37 @@ export const Dictionary: React.FC<DictionaryProps> = ({
             </div>
 
             {filteredWordsList.length === 0 ? (
-              <div className="bg-white p-12 rounded-[2.5rem] border-2 border-dashed border-slate-200 text-center space-y-4">
-                <p className="font-extrabold text-slate-600">No glossary terms match your currently applied filters.</p>
-                <div className="flex gap-2 justify-center">
+              <div className="bg-slate-50 p-10 rounded-[2.5rem] border-2 border-dashed border-slate-300 text-center space-y-5 shadow-[inset_0_2px_4px_rgba(0,0,0,0.06)] w-full">
+                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto border-2 border-black shadow-[3px_3px_0px_rgba(0,0,0,1)]">
+                  <i className="fas fa-magic text-amber-700 text-xl animate-pulse"></i>
+                </div>
+                <div className="space-y-1.5">
+                  <h4 className="text-lg font-black text-slate-900">Not in Local Glossary Register?</h4>
+                  <p className="text-xs font-semibold text-slate-500 max-w-md mx-auto leading-relaxed text-center">
+                    You've searched for <strong className="text-amber-800">"{searchQuery || 'your filters'}"</strong>, which is not in our offline glossary register. Since our dictionary is connected to the universal KLearn translation engine, you can look up ANY word in the world immediately!
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-sm mx-auto">
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => handleAISearch()}
+                      disabled={loadingAI}
+                      className="w-full sm:w-auto px-6 py-3.5 bg-amber-400 hover:bg-amber-500 text-black font-black text-xs rounded-xl uppercase tracking-widest border-2 border-black shadow-[3px_3px_0px_rgba(0,0,0,1)] active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                      {loadingAI ? (
+                        <>
+                          <i className="fas fa-spinner animate-spin"></i>
+                          <span>TRANSLATING...</span>
+                        </>
+                      ) : (
+                        <>
+                          <i className="fas fa-bolt"></i>
+                          <span>Translate "{searchQuery}" Now</span>
+                        </>
+                      )}
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
@@ -482,20 +534,12 @@ export const Dictionary: React.FC<DictionaryProps> = ({
                       setSelectedCategory('All');
                       setSelectedGrammar('All');
                       setSearchQuery('');
+                      setAiResult(null);
                     }}
-                    className="px-4 py-2 bg-slate-900 text-white font-bold text-xs rounded-lg uppercase tracking-wider"
+                    className="w-full sm:w-auto px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl uppercase tracking-widest border-2 border-black shadow-[3px_3px_0px_rgba(0,0,0,1)] active:scale-95 transition-all"
                   >
                     Reset Filters
                   </button>
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      onClick={() => handleAISearch()}
-                      className="px-4 py-2 bg-amber-400 text-black font-extrabold text-xs rounded-lg uppercase tracking-wider border border-black"
-                    >
-                      Search Online
-                    </button>
-                  )}
                 </div>
               </div>
             ) : (
@@ -588,13 +632,18 @@ export const Dictionary: React.FC<DictionaryProps> = ({
 
               {/* Top Meta info */}
               <div className="flex items-center justify-between border-b-2 border-amber-200 pb-4">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="bg-red-600 text-white text-[9px] font-black tracking-widest px-2.5 py-1 rounded-md uppercase shadow-sm">
                     {activeWord.category || 'Vocabulary'}
                   </span>
                   <span className="bg-slate-950 text-white text-[9px] font-black tracking-widest px-2.5 py-1 rounded-md uppercase">
                     {getGrammarTag(activeWord)}
                   </span>
+                  {aiResult && activeWord.kadazan === aiResult.kadazan && (
+                    <span className="bg-emerald-600 text-white text-[9px] font-black tracking-widest px-2.5 py-1 rounded-md uppercase animate-pulse flex items-center gap-1">
+                      <i className="fas fa-check-circle text-amber-300"></i> Kamus Dewan Match
+                    </span>
+                  )}
                 </div>
                 <div className="text-[9px] font-black tracking-wider text-amber-800 bg-amber-200/40 px-2 py-1 rounded-md">
                   Sabah Standard
