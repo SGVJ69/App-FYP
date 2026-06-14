@@ -268,9 +268,9 @@ export const Dictionary: React.FC<DictionaryProps> = ({
         </p>
       </div>
 
-      {/* Interactive Global Search & KLearn Translator */}
+      {/* Interactive Global Search & Translator */}
       <div className="bg-white p-5 rounded-[2.5rem] border-4 border-black shadow-[6px_6px_0px_rgba(0,0,0,1)] space-y-4">
-        {/* Universal KLearn Translation Engine Banner */}
+        {/* Universal Translation Engine Banner */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-gradient-to-r from-slate-950 to-blue-950 text-amber-400 px-5 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-wider border-2 border-black shadow-inner">
           <div className="flex items-center gap-2 flex-wrap text-left">
             <span className="flex h-2.5 w-2.5 relative">
@@ -278,7 +278,7 @@ export const Dictionary: React.FC<DictionaryProps> = ({
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
             </span>
             <i className="fas fa-globe text-emerald-400"></i>
-            <span>KLearn Universal Multi-Language Dictionary Engine Active</span>
+            <span>Universal Multi-Language Dictionary Engine Active</span>
           </div>
           <span className="text-amber-200 text-[9px] font-black">TYPE ANY WORD OR PHRASE IN THE WORLD</span>
         </div>
@@ -333,7 +333,7 @@ export const Dictionary: React.FC<DictionaryProps> = ({
           <div>
             <p className="font-extrabold uppercase text-[10px] tracking-wider text-amber-900">🌟 Dynamic Universal Lookup</p>
             <p className="text-[11px] font-semibold text-amber-800 leading-snug mt-0.5">
-              Type any vocabulary word or conversational phrase in English, Standard Malay (Dewan Bahasa/Dewan Bahasa Pustaka), or Sabah Dialect. Our KLearn engine translates it directly on-the-fly and explains grammar structures with correct pronunciation guides!
+              Type any vocabulary word or conversational phrase in English, Standard Malay (Dewan Bahasa/Dewan Bahasa Pustaka), or Sabah Dialect. Our system translates it directly on-the-fly and explains grammar structures with correct pronunciation guides!
             </p>
           </div>
         </div>
@@ -350,12 +350,12 @@ export const Dictionary: React.FC<DictionaryProps> = ({
               {loadingAI ? (
                 <>
                   <i className="fas fa-spinner animate-spin"></i>
-                  <span>MOMOLISIH DICTIONARY ENGINE...</span>
+                  <span>TRANSLATING WORD...</span>
                 </>
               ) : (
                 <>
                   <i className="fas fa-magic text-red-600"></i>
-                  <span>Translate "{searchQuery}" instantly with KLearn</span>
+                  <span>Translate "{searchQuery}" instantly</span>
                 </>
               )}
             </button>
@@ -503,7 +503,7 @@ export const Dictionary: React.FC<DictionaryProps> = ({
                 <div className="space-y-1.5">
                   <h4 className="text-lg font-black text-slate-900">Not in Local Glossary Register?</h4>
                   <p className="text-xs font-semibold text-slate-500 max-w-md mx-auto leading-relaxed text-center">
-                    You've searched for <strong className="text-amber-800">"{searchQuery || 'your filters'}"</strong>, which is not in our offline glossary register. Since our dictionary is connected to the universal KLearn translation engine, you can look up ANY word in the world immediately!
+                    You've searched for <strong className="text-amber-800">"{searchQuery || 'your filters'}"</strong>, which is not in our offline glossary register. Since our dictionary is connected to the universal database, you can look up ANY word in the world immediately!
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-sm mx-auto">
