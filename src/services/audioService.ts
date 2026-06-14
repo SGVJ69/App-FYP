@@ -9,8 +9,8 @@ export function decode(base64: string): Uint8Array {
   return bytes;
 }
 
-// Packages raw 16-bit PCM (24000Hz mono) into a standard RIFF/WAV Blob
-export function pcmToWav(pcmData: Uint8Array, sampleRate: number = 24000): Blob {
+// Packages raw 16-bit PCM (24000Hz mono) into a standard RIFF/WAV Uint8Array
+export function pcmToWavBytes(pcmData: Uint8Array, sampleRate: number = 24000): Uint8Array {
   const buffer = new ArrayBuffer(44 + pcmData.length);
   const view = new DataView(buffer);
 
@@ -47,6 +47,12 @@ export function pcmToWav(pcmData: Uint8Array, sampleRate: number = 24000): Blob 
   wavBytes.set(headerBytes, 0);
   wavBytes.set(pcmData, 44);
 
+  return wavBytes;
+}
+
+// Packages raw 16-bit PCM (24000Hz mono) into a standard RIFF/WAV Blob
+export function pcmToWav(pcmData: Uint8Array, sampleRate: number = 24000): Blob {
+  const wavBytes = pcmToWavBytes(pcmData, sampleRate);
   return new Blob([wavBytes], { type: 'audio/wav' });
 }
 
@@ -56,48 +62,122 @@ function writeString(view: DataView, offset: number, string: string) {
   }
 }
 
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+export function decodeAudioData(
+  data: Uint8Array,
+  ctx: AudioContext,
+  sampleRate: number,
+  numChannels: number,
+): AudioBuffer {
+  const dataInt16 = new Int16Array(data.buffer);
+  const frameCount = dataInt16.length / numChannels;
+  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+
+  for (let channel = 0; channel < numChannels; channel++) {
+    const channelData = buffer.getChannelData(channel);
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    }
+  }
+  return buffer;
+}
+
+let ttsAudioCtx: AudioContext | null = null;
+
 export function primeAudioContext(): void {
-  // Legacy / No-op for backward compatibility, since HTML5 Audio element handles it natively now!
-  console.log("Audio container primed natively.");
+  try {
+    if (typeof window === 'undefined') return;
+    const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtxClass) return;
+
+    if (!ttsAudioCtx) {
+      ttsAudioCtx = new AudioCtxClass({ sampleRate: 24000 });
+      console.log("AudioContext initialized via gesture priming.");
+    }
+    if (ttsAudioCtx && ttsAudioCtx.state === 'suspended') {
+      ttsAudioCtx.resume()
+        .then(() => console.log("AudioContext successfully resumed via priming."))
+        .catch((err) => console.warn("Could not resume AudioContext:", err));
+    }
+  } catch (err) {
+    console.warn("Failed to prime AudioContext:", err);
+  }
 }
 
 export async function playTTS(base64: string): Promise<void> {
   return new Promise((resolve) => {
+    let triedWebAudioFallback = false;
+
+    const triggerWebAudioFallback = async () => {
+      if (triedWebAudioFallback) {
+        resolve();
+        return;
+      }
+      triedWebAudioFallback = true;
+      console.log("Triggering Web Audio API decoding fallback...");
+      try {
+        primeAudioContext();
+        if (!ttsAudioCtx) {
+          throw new Error("No AudioContext available");
+        }
+        const pcmBytes = decode(base64);
+        const buffer = decodeAudioData(pcmBytes, ttsAudioCtx, 24000, 1);
+        const source = ttsAudioCtx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ttsAudioCtx.destination);
+        source.onended = () => {
+          resolve();
+        };
+        source.start(0);
+      } catch (err) {
+        console.error("Web Audio API decoding fallback failed as well:", err);
+        resolve();
+      }
+    };
+
     try {
+      // 1. Generate Wave Bytes
       const pcmBytes = decode(base64);
-      const wavBlob = pcmToWav(pcmBytes, 24000);
-      const objectUrl = URL.createObjectURL(wavBlob);
+      const wavBytes = pcmToWavBytes(pcmBytes, 24000);
+      
+      // 2. Conver to Base64 Data URI instead of blob: URL (which is highly restricted in Android WebViews)
+      const base64Wav = uint8ArrayToBase64(wavBytes);
+      const dataUri = "data:audio/wav;base64," + base64Wav;
       
       const audio = new Audio();
-      audio.src = objectUrl;
+      audio.src = dataUri;
       
       audio.onended = () => {
-        URL.revokeObjectURL(objectUrl);
         resolve();
       };
       
       audio.onerror = (e) => {
-        console.error("HTML5 WAV Audio playback error:", e);
-        URL.revokeObjectURL(objectUrl);
-        resolve();
+        console.error("HTML5 WAV base64 Audio playback error, trying Web Audio API context fallback:", e);
+        triggerWebAudioFallback();
       };
       
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
-            console.log("HTML5 WAV Audio playback started successfully in WebView.");
+            console.log("HTML5 WAV base64 Audio playback started successfully in WebView.");
           })
           .catch((err) => {
-            console.warn("HTML5 audio play was prevented, trying muted trigger or resolving directly:", err);
-            // On some restrictively configured WebViews, user gestures are strictly cleared. 
-            // In such situations we still want to finish gracefully.
-            resolve();
+            console.warn("HTML5 base64 audio play was prevented/blocked, trying Web Audio API context fallback:", err);
+            triggerWebAudioFallback();
           });
       }
     } catch (error) {
-      console.error("Error creating or playing WAV audio:", error);
-      resolve();
+      console.error("Error creating or playing base64 WAV audio:", error);
+      triggerWebAudioFallback();
     }
   });
 }
