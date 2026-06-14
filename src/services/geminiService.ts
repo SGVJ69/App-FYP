@@ -3,6 +3,7 @@ import { WordPair, QuizQuestion, SpellingChallenge } from "../types";
 import { db } from '../firebase';
 import { GLOSBE_OFFLINE_DICTIONARY } from '../data/glosbeOfflineDictionary';
 import { doc, getDoc } from 'firebase/firestore';
+import preGeneratedAudio from '../data/preGeneratedAudio.json';
 
 export interface SentenceChallenge {
   english: string;
@@ -189,6 +190,12 @@ const getApiBaseUrl = (): string => {
 };
 
 export const generateSpeech = async (text: string): Promise<string | undefined> => {
+  const cleanKey = text.trim().toLowerCase();
+  if ((preGeneratedAudio as Record<string, string>)[cleanKey]) {
+    console.log(`[Offline Audio DB] Playback from pre-compiled asset: "${cleanKey}"`);
+    return (preGeneratedAudio as Record<string, string>)[cleanKey];
+  }
+
   if (audioCache.has(text)) {
     return audioCache.get(text);
   }

@@ -77,7 +77,17 @@ export function decodeAudioData(
   sampleRate: number,
   numChannels: number,
 ): AudioBuffer {
-  const dataInt16 = new Int16Array(data.buffer);
+  // Explicitly read aligned 16-bit PCM little-endian samples to avoid buffer alignment throwables
+  const sampleCount = Math.floor(data.byteLength / 2);
+  const dataInt16 = new Int16Array(sampleCount);
+  for (let i = 0; i < sampleCount; i++) {
+    const low = data[i * 2];
+    const high = data[i * 2 + 1];
+    let val = low | (high << 8);
+    if (val & 0x8000) val |= ~0xffff; // sign extension for 16-bit negative values
+    dataInt16[i] = val;
+  }
+
   const frameCount = dataInt16.length / numChannels;
   const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
 

@@ -4,6 +4,7 @@ import { Screen, WordPair, QuizQuestion, SpellingChallenge, UserProgress } from 
 import { Layout } from './components/Layout';
 import { AdminPanel } from './components/AdminPanel';
 import { Dictionary } from './components/Dictionary';
+import { AudioDiagnostics } from './components/AudioDiagnostics';
 import { auth, db } from './firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -1558,7 +1559,7 @@ export default function App() {
                   <i className="fas fa-leaf"></i>
                </div>
                <h2 className="text-5xl font-black text-black tracking-tighter kadazan-title uppercase italic leading-none mb-2 text-center">Our Heritage</h2>
-               <p className="text-amber-600 font-black uppercase text-sm tracking-[0.4em] text-center">Bansa Kadazan</p>
+               <p className="text-amber-600 font-black uppercase text-sm tracking-[0.4em] text-center">Bansa Kadazan & App Hub</p>
             </div>
             
             <div className="bg-white p-4 rounded-[3.5rem] border-4 border-black shadow-[8px_8px_0px_rgba(0,0,0,1)] relative overflow-hidden traditional-card">
@@ -1583,6 +1584,9 @@ export default function App() {
                   </div>
                </div>
             </div>
+
+            {/* Comprehensive APK & Offline Device Sound Diagnostics Console */}
+            <AudioDiagnostics />
             
             <div className="flex justify-center w-full mt-8 mb-4">
               <button 
