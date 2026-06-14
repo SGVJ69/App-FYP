@@ -235,6 +235,13 @@ export function parseToPhoneticSegments(text: string): PhoneticSegment[] {
   return segments;
 }
 
+function isVoiced(type: 'vowel' | 'nasal' | 'fricative' | 'plosive' | 'silence', char: string): boolean {
+  if (type === 'vowel' || type === 'nasal') return true;
+  if (type === 'fricative' && ['v', 'z'].includes(char)) return true;
+  if (type === 'plosive' && ['b', 'd', 'g', 'j'].includes(char)) return true;
+  return false;
+}
+
 function speakSynthesizedText(segments: PhoneticSegment[], ctx: AudioContext): number {
   const now = ctx.currentTime + 0.03;
   
@@ -337,46 +344,47 @@ function speakSynthesizedText(segments: PhoneticSegment[], ctx: AudioContext): n
   for (let idx = 0; idx < N; idx++) {
     const seg = segments[idx];
     const relativeIdx = idx / N;
+    // Gentle natural intonation curve across the words
     const intonation = Math.sin(relativeIdx * Math.PI) * 16;
     const declination = - (relativeIdx * 10);
     const pitch = basePitch + intonation + declination;
 
     osc.frequency.setValueAtTime(pitch, t);
 
-    if (seg.type === 'vowel') {
-      const pr = FORMANT_MAP[seg.char] || FORMANT_MAP.default;
+    const currentVoiced = isVoiced(seg.type, seg.char);
+    const nextVoiced = idx + 1 < N ? isVoiced(segments[idx + 1].type, segments[idx + 1].char) : false;
+    const targetVol = currentVoiced
+      ? (seg.type === 'vowel' ? 0.3 : seg.type === 'nasal' ? 0.22 : 0.08)
+      : 0.001;
+
+    // Transition voice gain to this segment's target level smoothly
+    voiceGain.gain.linearRampToValueAtTime(targetVol, t + 0.02);
+
+    if (currentVoiced) {
+      const pr = seg.type === 'vowel'
+        ? (FORMANT_MAP[seg.char] || FORMANT_MAP.default)
+        : { f1: 240, g1: 0.28, f2: 800, g2: 0.1, f3: 1500, g3: 0.04 }; // Nasal formants
+
       formant1.frequency.linearRampToValueAtTime(pr.f1, t + 0.035);
       formant2.frequency.linearRampToValueAtTime(pr.f2, t + 0.035);
       formant3.frequency.linearRampToValueAtTime(pr.f3, t + 0.035);
       
-      gainF1.gain.linearRampToValueAtTime(pr.g1 * 0.25, t + 0.035);
-      gainF2.gain.linearRampToValueAtTime(pr.g2 * 0.25, t + 0.035);
-      gainF3.gain.linearRampToValueAtTime(pr.g3 * 0.25, t + 0.035);
+      gainF1.gain.linearRampToValueAtTime(pr.g1 * 0.3, t + 0.035);
+      gainF2.gain.linearRampToValueAtTime(pr.g2 * 0.3, t + 0.035);
+      gainF3.gain.linearRampToValueAtTime(pr.g3 * 0.3, t + 0.035);
 
-      voiceGain.gain.linearRampToValueAtTime(0.25, t + 0.015);
-      voiceGain.gain.setValueAtTime(0.25, t + seg.duration - 0.01);
-      voiceGain.gain.linearRampToValueAtTime(0.001, t + seg.duration);
-
-      noiseGain.gain.linearRampToValueAtTime(0.001, t + 0.012);
-    } 
-    else if (seg.type === 'nasal') {
-      formant1.frequency.linearRampToValueAtTime(240, t + 0.03);
-      formant2.frequency.linearRampToValueAtTime(800, t + 0.03);
-      formant3.frequency.linearRampToValueAtTime(1500, t + 0.03);
-      
-      gainF1.gain.linearRampToValueAtTime(0.28, t + 0.035);
-      gainF2.gain.linearRampToValueAtTime(0.1, t + 0.035);
-      gainF3.gain.linearRampToValueAtTime(0.04, t + 0.035);
-
-      voiceGain.gain.linearRampToValueAtTime(0.18, t + 0.015);
-      voiceGain.gain.setValueAtTime(0.18, t + seg.duration - 0.01);
-      voiceGain.gain.linearRampToValueAtTime(0.001, t + seg.duration);
-
+      // Transition voice carrier gain smoothly
+      if (nextVoiced) {
+        // Keep active and ready for soft crossfade/bend to avoid beatboxing clicks
+        voiceGain.gain.setValueAtTime(targetVol, t + seg.duration);
+      } else {
+        // Fade out nicely towards the end of voicing
+        voiceGain.gain.setValueAtTime(targetVol, t + seg.duration - 0.015);
+        voiceGain.gain.linearRampToValueAtTime(0.001, t + seg.duration);
+      }
       noiseGain.gain.linearRampToValueAtTime(0.001, t + 0.015);
-    }
+    } 
     else if (seg.type === 'fricative') {
-      voiceGain.gain.linearRampToValueAtTime(0.001, t + 0.015);
-
       let fFreq = 3000;
       let fQ = 1.0;
       let fVol = 0.04;
@@ -392,31 +400,45 @@ function speakSynthesizedText(segments: PhoneticSegment[], ctx: AudioContext): n
       noiseGain.gain.linearRampToValueAtTime(0.001, t + seg.duration);
 
       if (seg.char === 'v' || seg.char === 'z') {
-        voiceGain.gain.linearRampToValueAtTime(0.07, t + 0.01);
-        voiceGain.gain.setValueAtTime(0.07, t + seg.duration - 0.015);
-        voiceGain.gain.linearRampToValueAtTime(0.001, t + seg.duration);
+        const vVol = 0.07;
+        voiceGain.gain.linearRampToValueAtTime(vVol, t + 0.012);
+        if (nextVoiced) {
+          voiceGain.gain.setValueAtTime(vVol, t + seg.duration);
+        } else {
+          voiceGain.gain.setValueAtTime(vVol, t + seg.duration - 0.015);
+          voiceGain.gain.linearRampToValueAtTime(0.001, t + seg.duration);
+        }
+      } else {
+        voiceGain.gain.linearRampToValueAtTime(0.001, t + 0.015);
       }
     }
     else if (seg.type === 'plosive') {
-      voiceGain.gain.linearRampToValueAtTime(0.001, t + 0.015);
-
       let pFreq = 2000;
       let pVol = 0.08;
       if (['p', 'b'].includes(seg.char)) { pFreq = 600; pVol = 0.055; }
       else if (['t', 'd'].includes(seg.char)) { pFreq = 5400; pVol = 0.065; }
 
-      const burstStart = t + 0.015;
-      noiseFilter.frequency.setValueAtTime(pFreq, burstStart);
+      // Gated silent gap before release burst
+      voiceGain.gain.setValueAtTime(0.001, t);
       noiseGain.gain.setValueAtTime(0.001, t);
+
+      const burstStart = t + 0.02;
+      noiseFilter.frequency.setValueAtTime(pFreq, burstStart);
       noiseGain.gain.setValueAtTime(pVol, burstStart);
       noiseGain.gain.exponentialRampToValueAtTime(0.001, t + seg.duration);
 
       if (['b', 'd', 'g'].includes(seg.char)) {
-        voiceGain.gain.setValueAtTime(0.07, burstStart);
-        voiceGain.gain.exponentialRampToValueAtTime(0.001, t + seg.duration);
+        const bVol = 0.07;
+        voiceGain.gain.setValueAtTime(bVol, burstStart);
+        if (nextVoiced) {
+          voiceGain.gain.setValueAtTime(bVol, t + seg.duration);
+        } else {
+          voiceGain.gain.exponentialRampToValueAtTime(0.001, t + seg.duration);
+        }
       }
     }
     else {
+      // General silence / spacing gap
       voiceGain.gain.linearRampToValueAtTime(0.001, t + 0.015);
       noiseGain.gain.linearRampToValueAtTime(0.001, t + 0.015);
     }
