@@ -39,6 +39,8 @@ export interface WordPair {
   exampleMalay?: string;
   category: string;
   imageUrl?: string;
+  explanation?: string;
+  fancy?: boolean;
 }
 
 export interface QuizQuestion {

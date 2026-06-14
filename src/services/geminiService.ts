@@ -1,6 +1,7 @@
 
 import { WordPair, QuizQuestion, SpellingChallenge } from "../types";
 import { db } from '../firebase';
+import { GLOSBE_OFFLINE_DICTIONARY } from '../data/glosbeOfflineDictionary';
 import { doc, getDoc } from 'firebase/firestore';
 
 export interface SentenceChallenge {
@@ -10,70 +11,81 @@ export interface SentenceChallenge {
   distractors: string[];
 }
 
-export const STATIC_VOCABULARY: Record<string, WordPair[]> = {
+const STATIC_VOCABULARY_BASE: Record<string, WordPair[]> = {
   'Animals': [
-    { english: 'Dog', kadazan: 'Tasu', malay: 'Anjing', example: 'Agayo ilo tasu.', exampleEnglish: 'That dog is big.', exampleMalay: 'Anjing itu besar.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Cat', kadazan: 'Tingau', malay: 'Kucing', example: 'Tingau ku diti.', exampleEnglish: 'This is my cat.', exampleMalay: 'Ini kucing saya.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Horse', kadazan: 'Kuda', malay: 'Kuda', example: 'Agayo ilo kuda.', exampleEnglish: 'That horse is big.', exampleMalay: 'Kuda itu besar.', category: 'Animals', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a2/Horse_December_2014-1.jpg' },
-    { english: 'Fish', kadazan: 'Sada', malay: 'Ikan', example: 'Aso sada id taang.', exampleEnglish: 'There is no fish in the market.', exampleMalay: 'Tiada ikan di pasar.', category: 'Animals', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Oreochromis-niloticus-Nairobi.JPG/960px-Oreochromis-niloticus-Nairobi.JPG' },
-    { english: 'Bird', kadazan: 'Tombolog', malay: 'Burung', example: 'Sumolimbau ih tombolog.', exampleEnglish: 'The bird is flying high.', exampleMalay: 'Burung itu terbang tinggi.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1444464666168-49d633b86797?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Cow', kadazan: 'Sapi', malay: 'Lembu', example: 'Mangakan do roun o sapi.', exampleEnglish: 'The cow is eating grass.', exampleMalay: 'Lembu sedang makan rumput.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1546445317-29f4545e9d53?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Frog', kadazan: 'Gohung', malay: 'Katak', example: 'Tonggogot ginodi gohung diti.', exampleEnglish: 'This frog jumps far.', exampleMalay: 'Katak ini melompat jauh.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1579380656108-f98e4df8ea62?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Pig', kadazan: 'Vogok', malay: 'Babi', example: 'Agayo o vogok diti.', exampleEnglish: 'This pig is huge.', exampleMalay: 'Babi ini sangat besar.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Chicken', kadazan: 'Manuk', malay: 'Ayam', example: 'Panggulon ku ih manuk.', exampleEnglish: 'I will hit the chicken.', exampleMalay: 'Saya akan pukul ayam itu.', category: 'Animals', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/8/84/Male_and_female_chicken_sitting_together.jpg' }
+    { english: 'Dog', kadazan: 'Tasu', malay: 'Anjing', example: 'Agayo ilo tasu.', exampleEnglish: 'That dog is big.', exampleMalay: 'Anjing itu besar.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced as /tah-suh/. In Kadazan culture, dogs are valuable companions frequently kept in Kampungs (villages) for guarding houses and farms.' },
+    { english: 'Cat', kadazan: 'Tingau', malay: 'Kucing', example: 'Tingau ku diti.', exampleEnglish: 'This is my cat.', exampleMalay: 'Ini kucing saya.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced as /tee-ngow/. A standard coastal Kadazan term for cat, sharing similarities with standard Dusun words.' },
+    { english: 'Horse', kadazan: 'Kuda', malay: 'Kuda', example: 'Agayo ilo kuda.', exampleEnglish: 'That horse is big.', exampleMalay: 'Kuda itu besar.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /ku-dah/ (similar to Malay). Horses in Sabah are traditionally associated with the Bajau "Cowboys of the East", and recognized in Kadazan trade histories.' },
+    { english: 'Fish', kadazan: 'Sada', malay: 'Ikan', example: 'Aso sada id taang.', exampleEnglish: 'There is no fish in the market.', exampleMalay: 'Tiada ikan di pasar.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1524704654690-b56c05c78a02?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced as /sah-dah/. A crucial ingredient in traditional Kadazan cuisine, particularly in preserved fish dishes like "Bosou" or "Noonsom".' },
+    { english: 'Bird', kadazan: 'Tombolog', malay: 'Burung', example: 'Sumolimbau ih tombolog.', exampleEnglish: 'The bird is flying high.', exampleMalay: 'Burung itu terbang tinggi.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1444464666168-49d633b86797?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced as /tom-boh-log/. Bornean birds hold deep mythological importance in indigenous tales of wisdom.' },
+    { english: 'Cow', kadazan: 'Sapi', malay: 'Lembu', example: 'Mangakan do roun o sapi.', exampleEnglish: 'The cow is eating grass.', exampleMalay: 'Lembu sedang makan rumput.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1546445317-29f4545e9d53?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /sah-pee/. Sapi is widely used in Sabah to describe both cows and cattle roaming local farming valleys.' },
+    { english: 'Frog', kadazan: 'Gohung', malay: 'Katak', example: 'Tonggogot ginodi gohung diti.', exampleEnglish: 'This frog jumps far.', exampleMalay: 'Katak ini melompat jauh.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1579380656108-f98e4df8ea62?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced as /goh-hung/. Gohung is often heard singing in wet paddy meadows during the rich rainy seasons.' },
+    { english: 'Pig', kadazan: 'Vogok', malay: 'Babi', example: 'Agayo o vogok diti.', exampleEnglish: 'This pig is huge.', exampleMalay: 'Babi ini sangat besar.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1516467508483-a7212febe31a?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /voh-gok/. Pigs hold historical, ceremonial, and culinary significance in traditional non-Muslim Kadazan rituals.' },
+    { english: 'Chicken', kadazan: 'Manuk', malay: 'Ayam', example: 'Panggulon ku ih manuk.', exampleEnglish: 'I will hit the chicken.', exampleMalay: 'Saya akan pukul ayam itu.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1548550023-2bdb3c5beed7?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /mah-nook/. Reared commonly in domestic yards and a staple protein source in indigenous Kadazan gatherings.' },
+    { english: 'Buffalo', kadazan: 'Karabau', malay: 'Kerbau', example: 'Kodingo o karabau id natad.', exampleEnglish: 'The buffalo is in the field.', exampleMalay: 'Kerbau itu ada di padang.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1505187213454-e053a7b545db?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /kah-rah-bow/. Buffaloes are a proud symbol of Kadazandusun wealth and were historically used to plough rice paddies.' },
+    { english: 'Monkey', kadazan: 'Kara', malay: 'Monyet', example: 'Mopoitig kara id puun punti.', exampleEnglish: 'The monkey climbs the banana tree.', exampleMalay: 'Monyet memanjat pokok pisang.', category: 'Animals', imageUrl: 'https://images.unsplash.com/photo-1540573133985-87b6da6d54a9?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /kah-rah/. Refers to the playful monkeys frequently found in Sabah\'s pristine tropical mangrove jungles.' }
   ],
   'Food': [
-    { english: 'Egg', kadazan: 'Tontohu', malay: 'Telur', example: 'Mangakan zou tontohu.', exampleEnglish: 'I am eating an egg.', exampleMalay: 'Saya makan telur.', category: 'Food', imageUrl: 'https://images.unsplash.com/photo-1587486913049-53fc88980cfc?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Cooked Rice', kadazan: 'Nansakan', malay: 'Nasi', example: 'Aso nansakan di dogo.', exampleEnglish: 'I do not have cooked rice.', exampleMalay: 'Saya tiada nasi.', category: 'Food', imageUrl: 'https://images.unsplash.com/photo-1536304929831-ee1ca9d44906?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Water', kadazan: 'Waig', malay: 'Air', example: 'Onuai zou waig ahuma.', exampleEnglish: 'Give me warm water.', exampleMalay: 'Beri saya air suam.', category: 'Food', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Glass_of_water.jpg/960px-Glass_of_water.jpg' },
-    { english: 'Vegetable', kadazan: 'Roun', malay: 'Sayur', example: 'Amu zou mangakan roun.', exampleEnglish: 'I do not eat vegetables.', exampleMalay: 'Saya tidak makan sayur.', category: 'Food', imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Sweet', kadazan: 'Momis', malay: 'Manis', example: 'Momis kopio kinotuan diti.', exampleEnglish: 'This vegetable is very sweet.', exampleMalay: 'Sayur ini sangat manis.', category: 'Food', imageUrl: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Banana', kadazan: 'Punti', malay: 'Pisang', example: 'Ondos ih punti omitu.', exampleEnglish: 'The ripe banana is delicious.', exampleMalay: 'Pisang masak itu sedap.', category: 'Food', imageUrl: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Milk', kadazan: 'Gatas', malay: 'Susu', example: 'Minum gatas o tanak.', exampleEnglish: 'The child drinks milk.', exampleMalay: 'Anak itu minum susu.', category: 'Food', imageUrl: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Salt', kadazan: 'Tusi', malay: 'Garam', example: 'Pionuan ku do tusi.', exampleEnglish: 'I ask for some salt.', exampleMalay: 'Saya minta garam.', category: 'Food', imageUrl: 'https://images.unsplash.com/photo-1518110168407-f37751079fc7?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Chili', kadazan: 'Hada', malay: 'Cili', example: 'Aagang kopio hada diti.', exampleEnglish: 'This chili is very red in color.', exampleMalay: 'Cili ini sangat merah warnanya.', category: 'Food', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/32/Thai_peppers.jpg/960px-Thai_peppers.jpg' }
+    { english: 'Egg', kadazan: 'Tontohu', malay: 'Telur', example: 'Mangakan zou tontohu.', exampleEnglish: 'I am eating an egg.', exampleMalay: 'Saya makan telur.', category: 'Food', imageUrl: 'https://images.unsplash.com/photo-1587486913049-53fc88980cfc?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /ton-toh-hoo/.' },
+    { english: 'Cooked Rice', kadazan: 'Nansakan', malay: 'Nasi', example: 'Aso nansakan di dogo.', exampleEnglish: 'I do not have cooked rice.', exampleMalay: 'Saya tiada nasi.', category: 'Food', imageUrl: 'https://images.unsplash.com/photo-1536304929831-ee1ca9d44906?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /nan-sah-kan/. "Nansakan" refers specifically to rice that is already cooked/prepared, highlighting the rich rice-farming heritage.' },
+    { english: 'Water', kadazan: 'Waig', malay: 'Air', example: 'Onuai zou waig ahuma.', exampleEnglish: 'Give me warm water.', exampleMalay: 'Beri saya air suam.', category: 'Food', imageUrl: 'https://images.unsplash.com/photo-1548839133-9fa0a41033e1?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced as /why-g/. Crucial word for daily requests. "Waig ahuma" refers to warm drinking water.' },
+    { english: 'Vegetable', kadazan: 'Roun', malay: 'Sayur', example: 'Amu zou mangakan roun.', exampleEnglish: 'I do not eat vegetables.', exampleMalay: 'Saya tidak makan sayur.', category: 'Food', imageUrl: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /row-oon/. Derived from the local word for leaf, because leafy greens dominate indigenous meals.' },
+    { english: 'Sweet', kadazan: 'Momis', malay: 'Manis', example: 'Momis kopio kinotuan diti.', exampleEnglish: 'This vegetable is very sweet.', exampleMalay: 'Sayur ini sangat manis.', category: 'Food', imageUrl: 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /moh-mees/. Root word is "omis" (sweet).' },
+    { english: 'Banana', kadazan: 'Punti', malay: 'Pisang', example: 'Ondos ih punti omitu.', exampleEnglish: 'The ripe banana is delicious.', exampleMalay: 'Pisang masak itu sedap.', category: 'Food', imageUrl: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /poon-tee/. A common Bornean fruit grown in many home gardens.' },
+    { english: 'Milk', kadazan: 'Gatas', malay: 'Susu', example: 'Minum gatas o tanak.', exampleEnglish: 'The child drinks milk.', exampleMalay: 'Anak itu minum susu.', category: 'Food', imageUrl: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /gah-tahs/. Related to standard Malay "getah", referring locally to dairy milk.' },
+    { english: 'Salt', kadazan: 'Tusi', malay: 'Garam', example: 'Pionuan ku do tusi.', exampleEnglish: 'I ask for some salt.', exampleMalay: 'Saya minta garam.', category: 'Food', imageUrl: 'https://images.unsplash.com/photo-1518110168407-f37751079fc7?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /too-see/. Essential seasoning for standard preservation of meats and fruits.' },
+    { english: 'Chili', kadazan: 'Hada', malay: 'Cili', example: 'Aagang kopio hada diti.', exampleEnglish: 'This chili is very red in color.', exampleMalay: 'Cili ini sangat merah warnanya.', category: 'Food', imageUrl: 'https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /hah-dah/. A fiery spice ubiquitous in Sabahan diets and side dips.' },
+    { english: 'Papaya', kadazan: 'Pontos', malay: 'Betik', example: 'Mangakan zou do pontos.', exampleEnglish: 'I am eating papaya.', exampleMalay: 'Saya makan betik.', category: 'Food', imageUrl: 'https://images.unsplash.com/photo-1517431345437-548777121703?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /pon-tos/. A local backyard crop eaten fresh.' }
   ],
   'Numbers': [
-    { english: 'One', kadazan: 'Iso', malay: 'Satu', example: 'Iso nopoh.', exampleEnglish: 'Only one.', exampleMalay: 'Satu sahaja.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/264653/ffffff?text=1&font=Playfair+Display' },
-    { english: 'Two', kadazan: 'Duo', malay: 'Dua', example: 'Onuai zou duo.', exampleEnglish: 'Give me two.', exampleMalay: 'Beri saya dua.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/2a9d8f/ffffff?text=2&font=Playfair+Display' },
-    { english: 'Three', kadazan: 'Tohu', malay: 'Tiga', example: 'Tohu tulun ti.', exampleEnglish: 'There are three people.', exampleMalay: 'Ada tiga orang.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/e9c46a/000000?text=3&font=Playfair+Display' },
-    { english: 'Four', kadazan: 'Apat', malay: 'Empat', example: 'Apat tasu ku.', exampleEnglish: 'I have four dogs.', exampleMalay: 'Saya ada empat anjing.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/f4a261/000000?text=4&font=Playfair+Display' },
-    { english: 'Five', kadazan: 'Himo', malay: 'Lima', example: 'Himo tasu ku id doho.', exampleEnglish: 'I have five dogs.', exampleMalay: 'Saya mempunyai lima anjing.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/1d3557/ffffff?text=5&font=Playfair+Display' },
-    { english: 'Six', kadazan: 'Onom', malay: 'Enam', example: 'Onom o wulan no.', exampleEnglish: 'It has been six months.', exampleMalay: 'Sudah enam bulan.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/457b9d/ffffff?text=6&font=Playfair+Display' },
-    { english: 'Seven', kadazan: 'Turu', malay: 'Tujuh', example: 'Turu o bungan.', exampleEnglish: 'Seven flowers.', exampleMalay: 'Tujuh kuntum bunga.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/a8dadc/1d3557?text=7&font=Playfair+Display' },
-    { english: 'Eight', kadazan: 'Wahu', malay: 'Lapan', example: 'Wahu o manuk.', exampleEnglish: 'Eight chickens.', exampleMalay: 'Lapan ekor ayam.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/f1faee/1d3557?text=8&font=Playfair+Display' },
-    { english: 'Ten', kadazan: 'Hopod', malay: 'Sepuluh', example: 'Hopod tulun.', exampleEnglish: 'Ten people.', exampleMalay: 'Sepuluh orang.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/e76f51/ffffff?text=10&font=Playfair+Display' }
+    { english: 'One', kadazan: 'Iso', malay: 'Satu', example: 'Iso nopoh.', exampleEnglish: 'Only one.', exampleMalay: 'Satu sahaja.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/264653/ffffff?text=1&font=Playfair+Display', explanation: 'Pronounced as /ee-soh/. Crucial baseline number.' },
+    { english: 'Two', kadazan: 'Duo', malay: 'Dua', example: 'Onuai zou duo.', exampleEnglish: 'Give me two.', exampleMalay: 'Beri saya dua.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/2a9d8f/ffffff?text=2&font=Playfair+Display', explanation: 'Pronounced as /doo-oh/.' },
+    { english: 'Three', kadazan: 'Tohu', malay: 'Tiga', example: 'Tohu tulun ti.', exampleEnglish: 'There are three people.', exampleMalay: 'Ada tiga orang.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/e9c46a/000000?text=3&font=Playfair+Display', explanation: 'Pronounced as /toh-hoo/.' },
+    { english: 'Four', kadazan: 'Apat', malay: 'Empat', example: 'Apat tasu ku.', exampleEnglish: 'I have four dogs.', exampleMalay: 'Saya ada empat anjing.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/f4a261/000000?text=4&font=Playfair+Display', explanation: 'Pronounced as /ah-paht/.' },
+    { english: 'Five', kadazan: 'Himo', malay: 'Lima', example: 'Himo tasu ku id doho.', exampleEnglish: 'I have five dogs.', exampleMalay: 'Saya mempunyai lima anjing.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/1d3557/ffffff?text=5&font=Playfair+Display', explanation: 'Pronounced as /hee-moh/.' },
+    { english: 'Six', kadazan: 'Onom', malay: 'Enam', example: 'Onom o wulan no.', exampleEnglish: 'It has been six months.', exampleMalay: 'Sudah enam bulan.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/457b9d/ffffff?text=6&font=Playfair+Display', explanation: 'Pronounced as /oh-nom/.' },
+    { english: 'Seven', kadazan: 'Turu', malay: 'Tujuh', example: 'Turu o bungan.', exampleEnglish: 'Seven flowers.', exampleMalay: 'Tujuh kuntum bunga.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/a8dadc/1d3557?text=7&font=Playfair+Display', explanation: 'Pronounced as /too-roo/.' },
+    { english: 'Eight', kadazan: 'Wahu', malay: 'Lapan', example: 'Wahu o manuk.', exampleEnglish: 'Eight chickens.', exampleMalay: 'Lapan ekor ayam.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/f1faee/1d3557?text=8&font=Playfair+Display', explanation: 'Pronounced as /wah-hoo/. The "h" is clearly pronounced.' },
+    { english: 'Nine', kadazan: 'Siyam', malay: 'Sembilan', example: 'Siyam o tulun nongoi.', exampleEnglish: 'Nine people went.', exampleMalay: 'Sembilan orang pergi.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/e76f51/ffffff?text=9&font=Playfair+Display', explanation: 'Pronounced /see-yahm/.' },
+    { english: 'Ten', kadazan: 'Hopod', malay: 'Sepuluh', example: 'Hopod tulun.', exampleEnglish: 'Ten people.', exampleMalay: 'Sepuluh orang.', category: 'Numbers', imageUrl: 'https://placehold.co/600x400/e76f51/ffffff?text=10&font=Playfair+Display', explanation: 'Pronounced as /hoh-pod/. Indicates completion of a counting scale.' }
   ],
   'Phrases': [
-    { english: 'Thank you', kadazan: 'Kotohuadan', malay: 'Terima kasih', example: 'Kotohuadan kio.', exampleEnglish: 'Thank you very much.', exampleMalay: 'Terima kasih banyak-banyak.', category: 'Phrases', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/US_ambassador_Kamala_Shirin_Lakhdhir_with_Kaamatan_pageants_during_a_visit_to_Likas_Hospital_of_Sabah.jpg/960px-US_ambassador_Kamala_Shirin_Lakhdhir_with_Kaamatan_pageants_during_a_visit_to_Likas_Hospital_of_Sabah.jpg' },
-    { english: 'Welcome', kadazan: 'Kopivosian', malay: 'Selamat datang', example: 'Kopivosian id sodopon.', exampleEnglish: 'Welcome to tonight.', exampleMalay: 'Selamat datang malam ini.', category: 'Phrases', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/KAAMATAN_15.jpg/960px-KAAMATAN_15.jpg' },
-    { english: 'Good morning', kadazan: 'Kopivosian doungosuab', malay: 'Selamat pagi', example: 'Kopivosian doungosuab songian.', exampleEnglish: 'Good morning everyone.', exampleMalay: 'Selamat pagi semua.', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Good night', kadazan: 'Kopivosian doungosodop', malay: 'Selamat malam', example: 'Kopivosian doungosodop tambalut.', exampleEnglish: 'Good night, friend.', exampleMalay: 'Selamat malam, kawan.', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&q=80&w=600' },
-    { english: 'How are you?', kadazan: 'Poingkuro ko?', malay: 'Apa khabar?', example: 'Poingkuro ko baino?', exampleEnglish: 'How are you today?', exampleMalay: 'Apa khabar hari ini?', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Don\'t cry', kadazan: 'Ada mihad', malay: 'Jangan nangis', example: 'Ada mihad, tanak tonini.', exampleEnglish: 'Don\'t cry, little child.', exampleMalay: 'Jangan menangis, anak kecil.', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1508849789987-4e5333c12b78?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Sorry', kadazan: 'Siou', malay: 'Maaf', example: 'Siou kio, amu ku nobowoi.', exampleEnglish: 'Sorry, I did not bring it.', exampleMalay: 'Maaf, saya tidak bawa.', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1548142813-c348350df52b?auto=format&fit=crop&q=80&w=600' },
-    { english: 'I love you', kadazan: 'Langad zou dia', malay: 'Saya sayang awak', example: 'Langad zou dia kopio.', exampleEnglish: 'I love you so much.', exampleMalay: 'Saya sangat sayang awak.', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&q=80&w=600' }
+    { english: 'Thank you', kadazan: 'Kotohuadan', malay: 'Terima kasih', example: 'Kotohuadan kio.', exampleEnglish: 'Thank you very much.', exampleMalay: 'Terima kasih banyak-banyak.', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /koh-toh-hoo-ah-dahn/. The most sacred polite saying in Kadazan.' },
+    { english: 'Welcome', kadazan: 'Kopivosian', malay: 'Selamat datang / Hello', example: 'Kopivosian id sodopon.', exampleEnglish: 'Welcome to tonight.', exampleMalay: 'Selamat datang malam ini.', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1496150590317-f8d992167e8f?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /koh-pee-voh-see-ahn/. Used universally as a greeting, hello, or warm welcome.' },
+    { english: 'Good morning', kadazan: 'Kopivosian doungosuab', malay: 'Selamat pagi', example: 'Kopivosian doungosuab songian.', exampleEnglish: 'Good morning everyone.', exampleMalay: 'Selamat pagi semua.', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&q=80&w=600', explanation: 'Combination of "Kopivosian" (wellness/greeting) and "doungosuab" (in the morning).' },
+    { english: 'Good night', kadazan: 'Kopivosian doungosodop', malay: 'Selamat malam', example: 'Kopivosian doungosodop tambalut.', exampleEnglish: 'Good night, friend.', exampleMalay: 'Selamat malam, kawan.', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?auto=format&fit=crop&q=80&w=600', explanation: 'Derived from "Kopivosian" and "doungosodop" (at night).' },
+    { english: 'How are you?', kadazan: 'Poingkuro ko?', malay: 'Apa khabar?', example: 'Poingkuro ko baino?', exampleEnglish: 'How are you today?', exampleMalay: 'Apa khabar hari ini?', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&q=80&w=600', explanation: '"Poingkuro" translates literally to "how", and "ko" is the pronoun for "you".' },
+    { english: 'Don\'t cry', kadazan: 'Ada mihad', malay: 'Jangan nangis', example: 'Ada mihad, tanak tonini.', exampleEnglish: 'Don\'t cry, little child.', exampleMalay: 'Jangan menangis, anak kecil.', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1508849789987-4e5333c12b78?auto=format&fit=crop&q=80&w=600', explanation: 'Formed from "Ada" (Do not) and "mihad" (to weep/cry).' },
+    { english: 'Sorry', kadazan: 'Siou', malay: 'Maaf', example: 'Siou kio, amu ku nobowoi.', exampleEnglish: 'Sorry, I did not bring it.', exampleMalay: 'Maaf, saya tidak bawa.', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1548142813-c348350df52b?auto=format&fit=crop&q=80&w=600', explanation: '/see-oh/. A simple, friendly expression to display remorse or beg forgiveness.' },
+    { english: 'I love you', kadazan: 'Langad zou dia', malay: 'Saya sayang awak', example: 'Langad zou dia kopio.', exampleEnglish: 'I love you so much.', exampleMalay: 'Saya sangat sayang awak.', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&q=80&w=600', explanation: 'Often expressed via "langad" (longing) or directly "koupusan zou dia" (I cherish you).' },
+    { english: 'Yes', kadazan: 'Oo', malay: 'Ya', example: 'Oo, ouhan iti.', exampleEnglish: 'Yes, this is easy.', exampleMalay: 'Ya, ini mudah.', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced as a quick nasal /oh-oh/.' },
+    { english: 'No', kadazan: 'Amu', malay: 'Tidak', example: 'Amu, amu zou mongoi sikul.', exampleEnglish: 'No, I am not going to school.', exampleMalay: 'Tidak, saya tidak pergi sekolah.', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=600', explanation: '/ah-moo/. Negates sentences and expresses disagreement.' },
+    { english: 'Goodbye / Go first', kadazan: 'Mongoi no ku', malay: 'Saya pergi dulu', example: 'Mongoi no ku, siou kio.', exampleEnglish: 'I will go first, goodbye.', exampleMalay: 'Saya jalan dulu ya.', category: 'Phrases', imageUrl: 'https://images.unsplash.com/photo-1505373877841-8d25f7d46678?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /mo-ngoy noh koo/. Standard polite parting phrase.' }
   ],
   'Nature': [
-    { english: 'Sun', kadazan: 'Tadau', malay: 'Matahari', example: 'Pana kinohodion tadau.', exampleEnglish: 'The sun is hot today.', exampleMalay: 'Matahari panas hari ini.', category: 'Nature', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Sun_icon%2C_yellow.svg/1024px-Sun_icon%2C_yellow.svg.png' },
-    { english: 'Moon', kadazan: 'Vuhan', malay: 'Bulan', example: 'Avang kopio ih vuhan.', exampleEnglish: 'The moon is very bright.', exampleMalay: 'Bulan itu sangat terang.', category: 'Nature', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/FullMoon2010.jpg/960px-FullMoon2010.jpg' },
-    { english: 'River', kadazan: 'Bawang', malay: 'Sungai', example: 'Agayo Bawang Penampang.', exampleEnglish: 'Penampang River is big.', exampleMalay: 'Sungai Penampang besar.', category: 'Nature', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Kinabatangan_River_%2814154417142%29.jpg/960px-Kinabatangan_River_%2814154417142%29.jpg' },
-    { english: 'Rain', kadazan: 'Rasam', malay: 'Hujan', example: 'Apana ih rasam.', exampleEnglish: 'The rain is heavy.', exampleMalay: 'Hujan sangat lebat.', category: 'Nature', imageUrl: 'https://images.unsplash.com/photo-1534274988757-a28bf1a57c17?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Star', kadazan: 'Rombituon', malay: 'Bintang', example: 'Aranyau o rombituon sodopon.', exampleEnglish: 'The star is shiny tonight.', exampleMalay: 'Bintang itu bersinar malam ini.', category: 'Nature', imageUrl: 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Flower', kadazan: 'Tusak', malay: 'Bunga', example: 'Aranyat o tusak diti.', exampleEnglish: 'This flower smells beautiful.', exampleMalay: 'Bunga ini berbau harum.', category: 'Nature', imageUrl: 'https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Tree', kadazan: 'Puun', malay: 'Pokok', example: 'Adalaan kawanit puun diti.', exampleEnglish: 'This tree is very tall.', exampleMalay: 'Pokok ini sangat tinggi.', category: 'Nature', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Usamljeni_jasen_-_panoramio_%28cropped%29.jpg/960px-Usamljeni_jasen_-_panoramio_%28cropped%29.jpg' },
-    { english: 'Mountain', kadazan: 'Nuhu', malay: 'Gunung', example: 'Nuhu Kinabalu.', exampleEnglish: 'Mount Kinabalu.', exampleMalay: 'Gunung Kinabalu.', category: 'Nature', imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Kinabalu_Sabah_Borneo_Kampong_Kundasang_panorama_2.jpg/960px-Kinabalu_Sabah_Borneo_Kampong_Kundasang_panorama_2.jpg' }
+    { english: 'Sun', kadazan: 'Tadau', malay: 'Matahari', example: 'Pana kinohodion tadau.', exampleEnglish: 'The sun is hot today.', exampleMalay: 'Matahari panas hari ini.', category: 'Nature', imageUrl: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced as /tah-dow/. "Tadau" also translates to "day" in Kadazan.' },
+    { english: 'Moon', kadazan: 'Vuhan', malay: 'Bulan', example: 'Avang kopio ih vuhan.', exampleEnglish: 'The moon is very bright.', exampleMalay: 'Bulan itu sangat terang.', category: 'Nature', imageUrl: 'https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /voo-hahn/. "Vuhan" is also the word for "month".' },
+    { english: 'River', kadazan: 'Bawang', malay: 'Sungai', example: 'Agayo Bawang Penampang.', exampleEnglish: 'Penampang River is big.', exampleMalay: 'Sungai Penampang besar.', category: 'Nature', imageUrl: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /bah-wahng/. Penampang districts flow around key rivers vital to trade.' },
+    { english: 'Rain', kadazan: 'Rasam', malay: 'Hujan', example: 'Apana ih rasam.', exampleEnglish: 'The rain is heavy.', exampleMalay: 'Hujan sangat lebat.', category: 'Nature', imageUrl: 'https://images.unsplash.com/photo-1534274988757-a28bf1a57c17?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /rah-sahm/. Daily monsoons play a crucial role in Bornean agriculture.' },
+    { english: 'Star', kadazan: 'Rombituon', malay: 'Bintang', example: 'Aranyau o rombituon sodopon.', exampleEnglish: 'The star is shiny tonight.', exampleMalay: 'Bintang itu bersinar malam ini.', category: 'Nature', imageUrl: 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /rom-bee-too-ohn/. Indigenous travelers historically navigated rainforests observing starlight.' },
+    { english: 'Flower', kadazan: 'Tusak', malay: 'Bunga', example: 'Aranyat o tusak diti.', exampleEnglish: 'This flower smells beautiful.', exampleMalay: 'Bunga ini berbau harum.', category: 'Nature', imageUrl: 'https://images.unsplash.com/photo-1526047932273-341f2a7631f9?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /too-sahk/.' },
+    { english: 'Tree', kadazan: 'Puun', malay: 'Pokok', example: 'Adalaan kawanit puun diti.', exampleEnglish: 'This tree is very tall.', exampleMalay: 'Pokok ini sangat tinggi.', category: 'Nature', imageUrl: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /poo-oon/. A root noun that also refers to beginnings or primary roots.' },
+    { english: 'Mountain', kadazan: 'Nuhu', malay: 'Gunung', example: 'Nuhu Kinabalu.', exampleEnglish: 'Mount Kinabalu.', exampleMalay: 'Gunung Kinabalu.', category: 'Nature', imageUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /noo-hoo/. Mount Kinabalu (Nuhu Nabalu) is the sacred resting place of ancestral spirits in indigenous belief.' }
   ],
   'Family': [
-    { english: 'Father', kadazan: 'Ama', malay: 'Bapa', example: 'Mongoi zou id ama ku.', exampleEnglish: 'I am going to my father.', exampleMalay: 'Saya pergi ke bapa saya.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1480455624313-e29b44bbfde1?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Mother', kadazan: 'Ina', malay: 'Ibu', example: 'Koupusan ku ih ina ku.', exampleEnglish: 'I love my mother.', exampleMalay: 'Saya sayang ibu saya.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1544365558-35aa4afcf11f?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Child', kadazan: 'Tanak', malay: 'Anak', example: 'Totoloo nodi ih tanak.', exampleEnglish: 'The child is crying.', exampleMalay: 'Anak itu menangis.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1544365558-35aa4afcf11f?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Elder sibling', kadazan: 'Aka', malay: 'Kakak/Abang', example: 'Mongoi i aka ku id sikul.', exampleEnglish: 'My elder sibling is going to school.', exampleMalay: 'Kakak/Abang saya pergi ke sekolah.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Younger sibling', kadazan: 'Adi', malay: 'Adik', example: 'Sumoisik ih adi ku baino.', exampleEnglish: 'My younger sibling is laughing today.', exampleMalay: 'Adik saya ketawa hari ini.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1510154221590-ff63e90a136f?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Friend', kadazan: 'Tambalut', malay: 'Kawan', example: 'Koupusan ku tambalut ku.', exampleEnglish: 'I love my friend.', exampleMalay: 'Saya sayang kawan saya.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Sibling', kadazan: 'Tobpinai', malay: 'Keluarga/Adik-beradik', example: 'Kotiop tobpinai ku diti.', exampleEnglish: 'My siblings are many.', exampleMalay: 'Adik-beradik saya ramai.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1510154221590-ff63e90a136f?auto=format&fit=crop&q=80&w=600' },
-    { english: 'Grandparent', kadazan: 'Odu', malay: 'Nenek/Datuk', example: 'Minsoi odu id kampung.', exampleEnglish: 'Grandparent went to the village.', exampleMalay: 'Nenek ke kampung.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1626315869436-d68aeb165eed?auto=format&fit=crop&q=80&w=600' }
+    { english: 'Father', kadazan: 'Ama', malay: 'Bapa', example: 'Mongoi zou id ama ku.', exampleEnglish: 'I am going to my father.', exampleMalay: 'Saya pergi ke bapa saya.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1480455624313-e29b44bbfde1?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /ah-mah/.' },
+    { english: 'Mother', kadazan: 'Ina', malay: 'Ibu', example: 'Koupusan ku ih ina ku.', exampleEnglish: 'I love my mother.', exampleMalay: 'Saya sayang ibu saya.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1544365558-35aa4afcf11f?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /ee-nah/.' },
+    { english: 'Child', kadazan: 'Tanak', malay: 'Anak', example: 'Totoloo nodi ih tanak.', exampleEnglish: 'The child is crying.', exampleMalay: 'Anak itu menangis.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1503919545889-aef636e10ad4?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /tah-nahk/.' },
+    { english: 'Elder sibling', kadazan: 'Aka', malay: 'Kakak / Abang', example: 'Mongoi i aka ku id sikul.', exampleEnglish: 'My elder sibling is going to school.', exampleMalay: 'Kakak/Abang saya pergi ke sekolah.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1543807535-eceef0bc6599?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /ah-kah/. Used respectfully for older brothers and sisters indistinguishably.' },
+    { english: 'Younger sibling', kadazan: 'Adi', malay: 'Adik', example: 'Sumoisik ih adi ku baino.', exampleEnglish: 'My younger sibling is laughing today.', exampleMalay: 'Adik saya ketawa hari ini.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1510154221590-ff63e90a136f?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /ah-dee/. Gentle pronoun for younger family members.' },
+    { english: 'Friend', kadazan: 'Tambalut', malay: 'Kawan', example: 'Koupusan ku tambalut ku.', exampleEnglish: 'I love my friend.', exampleMalay: 'Saya sayang kawan saya.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /tahm-bah-loot/. Meaning "companion" or "mate" bound by mutual affinity.' },
+    { english: 'Grandparent', kadazan: 'Odu', malay: 'Nenek / Datuk', example: 'Minsoi odu id kampung.', exampleEnglish: 'Grandparent went to the village.', exampleMalay: 'Nenek ke kampung.', category: 'Family', imageUrl: 'https://images.unsplash.com/photo-1473186578172-c141e6798cf4?auto=format&fit=crop&q=80&w=600', explanation: 'Pronounced /oh-doo/. Traditionally respected elders and storytellers of oral histories.' }
   ]
+};
+
+export const STATIC_VOCABULARY: Record<string, WordPair[]> = {
+  ...STATIC_VOCABULARY_BASE,
+  ...GLOSBE_OFFLINE_DICTIONARY
 };
 
 export const STATIC_QUIZZES: Record<string, QuizQuestion[]> = {
@@ -156,6 +168,16 @@ export const generateImage = async (prompt: string): Promise<string> => {
 const audioCache = new Map<string, string>();
 const fetchPromiseCache = new Map<string, Promise<string | undefined>>();
 
+// Resolve the API base URL. Use VITE_API_URL if configured (critical for APK/Webview environments),
+// otherwise default to standard relative paths.
+const getApiBaseUrl = (): string => {
+  const envUrl = (import.meta as any).env?.VITE_API_URL;
+  if (envUrl) {
+    return envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
+  }
+  return '';
+};
+
 export const generateSpeech = async (text: string): Promise<string | undefined> => {
   if (audioCache.has(text)) {
     return audioCache.get(text);
@@ -166,7 +188,7 @@ export const generateSpeech = async (text: string): Promise<string | undefined> 
   
   const promise = (async () => {
     try {
-      const response = await fetch("/api/speech", {
+      const response = await fetch(`${getApiBaseUrl()}/api/speech`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text })
@@ -195,6 +217,7 @@ export const generateSpeech = async (text: string): Promise<string | undefined> 
   
   return promise;
 };
+
 
 export const getVocabulary = async (category: string): Promise<WordPair[]> => {
   try {
@@ -280,9 +303,91 @@ export const getSentenceBuilderChallenge = async (completedCount: number = 0): P
   return Promise.resolve(STATIC_SENTENCES[Math.floor(completedCount / 10) % STATIC_SENTENCES.length]);
 };
 
+// Helper function to normalize words for robust fuzzy stem matching (handles plurals, verb endings, and Malay prefixes)
+const normalizeWord = (w: string): string => {
+  return w.toLowerCase()
+    .trim()
+    .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"']/g, "")
+    .replace(/s$/, "")                    // Plurals (dogs -> dog)
+    .replace(/ing$/, "")                  // Continuous verb (eating -> eat)
+    .replace(/ed$/, "")                   // Past tense (wanted -> want)
+    .replace(/^(me|mem|men|meng|ber|se|di)/, ""); // Common Malay prefixes (makan/makanan/memakan)
+};
+
 export const translateWithAIDictionary = async (text: string): Promise<WordPair & { explanation: string; success: boolean }> => {
+  const query = text.toLowerCase().trim();
+
+  // 1. Check local static vocabulary first for exact or substring matches
+  const allWords = Object.entries(STATIC_VOCABULARY).flatMap(([cat, words]) =>
+    words.map(w => ({ ...w, category: cat }))
+  );
+
+  // Match 1st: Exact or normalised direct match
+  const normQuery = normalizeWord(query);
+  const localMatch = allWords.find(
+    w => w.kadazan.toLowerCase() === query ||
+         w.english.toLowerCase() === query ||
+         w.malay.toLowerCase() === query
+  ) || allWords.find(
+    w => normalizeWord(w.kadazan) === normQuery ||
+         normalizeWord(w.english) === normQuery ||
+         normalizeWord(w.malay) === normQuery
+  ) || allWords.find(
+    w => w.kadazan.toLowerCase().includes(query) ||
+         w.english.toLowerCase().includes(query) ||
+         w.malay.toLowerCase().includes(query)
+  );
+
+  if (localMatch) {
+    return {
+      ...localMatch,
+      explanation: localMatch.explanation || `Standard coastal Kadazan word. Used commonly in everyday conversations in Sabah.`,
+      success: true
+    };
+  }
+
+  // Fallback: If it's a multi-word query, try translating word-by-word offline
+  const tokens = query.split(/\s+/).map(t => t.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"']/g, "")).filter(t => t.length > 1);
+  if (tokens.length > 1) {
+    const matchedPairs: { word: string; match: WordPair }[] = [];
+    for (const token of tokens) {
+      const normToken = normalizeWord(token);
+      const match = allWords.find(w => 
+        normalizeWord(w.kadazan) === normToken ||
+        normalizeWord(w.english) === normToken ||
+        normalizeWord(w.malay) === normToken
+      ) || allWords.find(w =>
+        w.kadazan.toLowerCase().includes(token) ||
+        w.english.toLowerCase().includes(token) ||
+        w.malay.toLowerCase().includes(token)
+      );
+      if (match) {
+        matchedPairs.push({ word: token, match });
+      }
+    }
+
+    if (matchedPairs.length > 0) {
+      const kadazanParts = matchedPairs.map(p => p.match.kadazan);
+      const englishParts = matchedPairs.map(p => p.match.english);
+      const malayParts = matchedPairs.map(p => p.match.malay);
+
+      const partsExplanation = matchedPairs.map(p => `• "${p.word}" is found as "${p.match.kadazan}" (${p.match.english} / ${p.match.malay})`).join('\n');
+
+      return {
+        english: text,
+        kadazan: kadazanParts.join(' '),
+        malay: malayParts.join(' '),
+        category: 'Offline Word Translation',
+        imageUrl: 'https://images.unsplash.com/photo-1544640808-32ca72ac7f37?auto=format&fit=crop&q=80&w=600',
+        explanation: `Compiled offline word-by-word:\n\n${partsExplanation}\n\nNote: If connected to the internet, you can lookup standard conversational constructs dynamically!`,
+        success: true
+      };
+    }
+  }
+
+  // 2. If not found locally, proceed to fetch dynamically through the API server
   try {
-    const response = await fetch("/api/translate", {
+    const response = await fetch(`${getApiBaseUrl()}/api/translate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text })
@@ -303,7 +408,7 @@ export const translateWithAIDictionary = async (text: string): Promise<WordPair 
     malay: '',
     category: 'Dynamic Translation',
     imageUrl: 'https://images.unsplash.com/photo-1544640808-32ca72ac7f37?auto=format&fit=crop&q=80&w=600',
-    explanation: 'Could not fetch live translation at the moment. Please verify your connection or try again.',
+    explanation: 'Could not fetch live translation offline. Please check your internet connection or try common words like "water", "eat", "happy", "dog", "mother" etc.',
     success: false
   };
 };
